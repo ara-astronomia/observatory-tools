@@ -1,0 +1,208 @@
+<!-- page-skymonitor.html — Tab Sky Monitor -->
+<div class="wrap">
+<div style="display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start;">
+
+<!-- ── PANNELLO SINISTRO ── -->
+<div>
+
+  <!-- INSERIMENTO MISURA -->
+  <div class="panel">
+    <div class="panel-title">Nuova misura</div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Filtro</label>
+        <select id="sky-filter">
+          <option value="B">B (Johnson)</option>
+          <option value="V">V (Johnson)</option>
+          <option value="R" selected>R (Cousins)</option>
+          <option value="I">I (Cousins)</option>
+          <option value="rp">r' (Sloan)</option>
+          <option value="gp">g' (Sloan)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fondo cielo (e⁻/px/s)</label>
+        <input type="number" id="sky-e" step="0.001" min="0.001" placeholder="es. 1.1">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Airmass oggetto</label>
+        <input type="number" id="sky-airmass" step="0.01" min="1" value="1.2">
+      </div>
+      <div class="field">
+        <label>Airmass Luna</label>
+        <input type="number" id="sky-airmass-moon" step="0.01" min="1" placeholder="opzionale">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Illuminazione Luna (%)</label>
+        <input type="number" id="sky-moon-illum" step="1" min="0" max="100" value="0">
+      </div>
+      <div class="field">
+        <label>Distanza Luna (°)</label>
+        <input type="number" id="sky-moon-dist" step="0.1" min="0" max="180" value="90">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Seeing FWHM (")</label>
+        <input type="number" id="sky-seeing" step="0.1" min="0.3" placeholder="opzionale">
+      </div>
+      <div class="field">
+        <label>Note</label>
+        <input type="text" id="sky-notes" placeholder="opzionale">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Data osservazione</label>
+        <input type="date" id="sky-obs-date">
+      </div>
+      <div class="field">
+        <label>Ora (HH:MM)</label>
+        <input type="time" id="sky-obs-time">
+      </div>
+    </div>
+
+    <button class="btn btn-sec" onclick="skyImportFromStaralt()" style="margin-top:0;margin-bottom:8px;">
+      ↗ Importa airmass e Luna da StarAlt
+    </button>
+
+    <div id="sky-feedback" style="font-size:11px;font-family:var(--mono);min-height:16px;margin-bottom:6px;"></div>
+
+    <button class="btn" onclick="skySaveMeasurement()">
+      + Salva misura
+    </button>
+  </div>
+
+  <!-- PREDITTORE -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Predittore sky</div>
+    <div style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:10px;line-height:1.6;">
+      Stima il fondo cielo atteso in base alle condizioni inserite,
+      usando la media ponderata delle misure nel DB.
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Filtro</label>
+        <select id="sky-pred-filter">
+          <option value="B">B</option>
+          <option value="V">V</option>
+          <option value="R" selected>R</option>
+          <option value="I">I</option>
+          <option value="rp">r'</option>
+          <option value="gp">g'</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Airmass</label>
+        <input type="number" id="sky-pred-airmass" step="0.01" min="1" value="1.2">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Illuminazione Luna (%)</label>
+        <input type="number" id="sky-pred-illum" step="1" min="0" max="100" value="0">
+      </div>
+      <div class="field">
+        <label>Distanza Luna (°)</label>
+        <input type="number" id="sky-pred-dist" step="1" min="0" max="180" value="90">
+      </div>
+    </div>
+
+    <button class="btn btn-sec" onclick="skyRunPredict()" style="margin-top:0;margin-bottom:8px;">
+      ▶ Calcola stima
+    </button>
+    <div id="sky-pred-result" style="min-height:24px;font-family:var(--mono);font-size:13px;"></div>
+  </div>
+
+</div>
+
+<!-- ── PANNELLO DESTRO ── -->
+<div>
+
+  <!-- GRAFICO -->
+  <div class="chart-wrap" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;">
+        Sky vs Airmass
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="sky-chart-filter" style="font-family:var(--mono);font-size:11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 6px;">
+          <option value="all">Tutti i filtri</option>
+          <option value="B">B</option>
+          <option value="V">V</option>
+          <option value="R">R</option>
+          <option value="I">I</option>
+          <option value="rp">r'</option>
+          <option value="gp">g'</option>
+        </select>
+        <select id="sky-moon-filter" style="font-family:var(--mono);font-size:11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 6px;">
+          <option value="all">Tutte le condizioni</option>
+          <option value="dark">🌑 Luna assente</option>
+          <option value="half">🌓 Mezza luna</option>
+          <option value="bright">🌕 Luna piena</option>
+        </select>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:280px;">
+      <canvas id="sky-chart-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- STATISTICHE -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Statistiche per filtro</div>
+    <div id="sky-stats-container">
+      <div style="color:var(--text2);font-family:var(--mono);font-size:12px;text-align:center;padding:16px;">
+        Caricamento dati…
+      </div>
+    </div>
+  </div>
+
+  <!-- TABELLA -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div class="panel-title" style="margin-bottom:0">Misure registrate</div>
+      <select id="sky-table-filter" style="font-family:var(--mono);font-size:11px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 6px;">
+        <option value="all">Tutti i filtri</option>
+        <option value="B">B</option>
+        <option value="V">V</option>
+        <option value="R">R</option>
+        <option value="I">I</option>
+        <option value="rp">r'</option>
+        <option value="gp">g'</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono);">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--border2);">
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Filtro</th>
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Sky</th>
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Airmass</th>
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Luna</th>
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Dist.</th>
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Seeing</th>
+            <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:400">Data</th>
+            <th style="padding:4px 6px;"></th>
+          </tr>
+        </thead>
+        <tbody id="sky-table-body">
+          <tr><td colspan="8" style="text-align:center;color:var(--text2);padding:20px;">Caricamento…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>

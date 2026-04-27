@@ -1,0 +1,221 @@
+<!-- page-etc.html - contenuto della tab ETC -->
+
+<div class="wrap">
+<div class="etc-grid">
+
+<div>
+  <!-- CAMERA -->
+  <div class="panel">
+    <div class="panel-title">Camera &amp; Gain</div>
+    <div class="cam-badge" style="margin-bottom:12px">
+      <div class="cam-field">Pixel: <span>3.76 µm</span></div>
+      <div class="cam-field">ADC: <span>16 bit</span></div>
+      <div class="cam-field">Focale: <span id="e-focal-shown">4000</span> mm</div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Diametro specchio (mm)</label>
+        <input type="number" id="e-diam" value="500" step="1" min="50" max="2000" oninput="etcOpticsChanged()">
+      </div>
+      <div class="field">
+        <label>Rapporto focale f/</label>
+        <input type="number" id="e-fratio" value="8" step="0.01" min="1" max="30" oninput="etcOpticsChanged()">
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:6px;">Modalità gain — IMX571</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;" id="e-gain-btns">
+      <button class="gain-btn active" onclick="etcSetGain(0)">G=0 · LCG</button>
+      <button class="gain-btn" onclick="etcSetGain(1)">G=2749 · HCG</button>
+      <button class="gain-btn" onclick="etcSetGain(2)">G=2750 · HCG LN</button>
+      <button class="gain-btn" onclick="etcSetGain(3)">G=4030 · HDR</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;font-size:11px;font-family:var(--mono);">
+      <div style="color:var(--text2)">σ_r<br><span id="e-rn-auto" style="color:var(--accent2);font-weight:700;font-size:13px">3.51</span> e⁻</div>
+      <div style="color:var(--text2)">FWC<br><span id="e-fwc-auto" style="color:var(--accent2);font-weight:700;font-size:13px">52800</span> e⁻</div>
+      <div style="color:var(--text2)">e⁻/ADU<br><span id="e-eadu-auto" style="color:var(--accent2);font-weight:700;font-size:13px">0.80</span></div>
+      <div style="color:var(--text2)">Gain<br><span id="e-gain-num" style="color:var(--text);font-size:13px">0</span></div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label>Binning HW acquisizione</label>
+        <select id="e-bin" onchange="etcCompute()">
+          <option value="1">1×1</option>
+          <option value="2" selected>2×2</option>
+          <option value="3">3×3</option>
+          <option value="4">4×4</option>
+        </select>
+      </div>
+      <div class="field"><label>Dark current (e⁻/px/s)</label>
+        <input type="number" id="e-dc" value="0.2" step="0.05" min="0" oninput="etcCompute()">
+      </div>
+    </div>
+    <div class="field"><label>Fondo cielo (e⁻/px/s)</label>
+      <input type="number" id="e-sky" value="30" step="0.001" min="0.001" oninput="etcCompute()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+        <span id="e-sky-source" style="font-size:10px;font-family:var(--mono);color:var(--text2);">
+          inserito manualmente
+        </span>
+        <label style="font-size:10px;font-family:var(--mono);color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input type="checkbox" id="e-sky-autofill" checked
+            onchange="skyAutoFillEnabled=this.checked;
+                      if(this.checked) etcSkyAutoFill().then(()=>etcCompute());
+                      document.getElementById('e-sky-source').textContent=
+                        this.checked?'auto da DB':'manuale';">
+          auto da DB sky
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- SORGENTE -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Sorgente &amp; Fotometria</div>
+
+    <div class="field"><label>Filtro</label>
+      <select id="e-filter" onchange="etcFilterChanged()">
+        <option value="B">B (Johnson)</option>
+        <option value="V">V (Johnson)</option>
+        <option value="R" selected>R (Cousins)</option>
+        <option value="I">I (Cousins)</option>
+        <option value="rp">r' (Sloan)</option>
+        <option value="gp">g' (Sloan)</option>
+      </select>
+    </div>
+    <div style="background:rgba(74,158,255,0.05);border-left:2px solid var(--border2);border-radius:0 4px 4px 0;padding:7px 10px;margin-bottom:10px;font-size:11px;font-family:var(--mono);color:var(--text2);line-height:1.6;">
+      La QE del sensore è inglobata nel ZP calibrato —<br>non va inserita separatamente.
+    </div>
+
+    <div class="field"><label>Magnitudine target (sistema Vega / Johnson-Cousins)</label>
+      <input type="number" id="e-mag" value="10" step="0.1" oninput="etcCompute()">
+    </div>
+
+    <div style="background:rgba(74,158,255,0.06);border:0.5px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:11px;font-family:var(--mono);color:var(--text2);">
+      Flusso stimato: <span id="e-flux-est" style="color:var(--accent2);font-weight:700">—</span> e⁻/px/s
+      &nbsp;·&nbsp; ZP usato: <span id="e-zp-shown" style="color:var(--gold)">—</span> mag
+    </div>
+
+    <div class="field">
+      <label>Zero-point calibrato (mag) — 0 = usa valore teorico del filtro</label>
+      <input type="number" id="e-zp-override" value="0" step="0.01" oninput="etcCompute()" placeholder="0 = teorico">
+      <div style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:3px">
+        Misura il ZP su una stella Landolt in notte fotometrica e inseriscilo qui per calibrare l'ETC.
+      </div>
+    </div>
+  </div>
+
+  <!-- AIRMASS -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Airmass &amp; Atmosfera</div>
+    <div class="row2">
+      <div class="field"><label>Altitudine oggetto (°)</label>
+        <input type="number" id="e-altdeg" value="45" step="1" min="5" max="90" oninput="etcAirmassFromAlt()">
+      </div>
+      <div class="field"><label>Airmass X (calcolato)</label>
+        <input type="number" id="e-airmass" value="1.41" step="0.01" min="1.0" max="5.0" oninput="etcCompute()" style="color:var(--gold)">
+      </div>
+    </div>
+    <button class="btn btn-sec" onclick="etcImportFromStaralt()" style="margin-top:0;margin-bottom:8px;">
+      ↗ Importa altitudine da StarAlt
+    </button>
+    <div style="font-size:11px;font-family:var(--mono);color:var(--text2);">
+      Coeff. estinzione k: <span id="e-k-shown" style="color:var(--accent2)">—</span> mag/airmass
+      &nbsp;·&nbsp; Δmag: <span id="e-ext-shown" style="color:var(--gold)">—</span> mag
+    </div>
+  </div>
+
+  <!-- APERTURA -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Apertura fotometrica</div>
+    <div class="row2">
+      <div class="field"><label>Seeing FWHM (arcsec)</label>
+        <input type="number" id="e-seeing" value="2.75" step="0.25" min="0.5" oninput="etcCompute()">
+      </div>
+      <div class="field"><label>Raggio apertura (× FWHM)</label>
+        <input type="number" id="e-ap-fwhm" value="1.4" step="0.1" min="0.5" max="5" oninput="etcCompute()">
+      </div>
+    </div>
+    <div style="background:rgba(74,158,255,0.06);border:0.5px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;font-family:var(--mono);color:var(--text2);">
+      FWHM: <span id="e-fwhm-px" style="color:var(--accent2)">—</span> px &nbsp;·&nbsp;
+      Raggio: <span id="e-ap-px" style="color:var(--accent2)">—</span> px &nbsp;·&nbsp;
+      N_px apertura: <span id="e-npix-auto" style="color:var(--accent2);font-weight:700">—</span>
+    </div>
+  </div>
+
+  <!-- OBIETTIVO -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Obiettivo SNR</div>
+
+    <div class="field">
+      <label>SNR target finale (stack)</label>
+      <input type="number" id="e-snr-stack" value="500" step="10" min="1" oninput="etcCompute()">
+    </div>
+
+    <div class="field">
+      <label>Exp. max singolo sub (s) — vincolo saturazione / guida / ecc.</label>
+      <input type="number" id="e-texp-max" value="120" step="10" min="1" oninput="etcCompute()">
+      <div style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:3px;">
+        L'ETC usa questo come tetto: se il sub ottimale è più lungo, usa questo valore.
+      </div>
+    </div>
+
+    <div class="field">
+      <label>N sub che vuoi fare (verifica)</label>
+      <input type="number" id="e-nsub" value="1" step="1" min="1" oninput="etcCompute()">
+      <div style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:3px;">
+        L'ETC mostra che SNR stack ottieni con questo numero di sub.
+      </div>
+    </div>
+
+    <button class="btn" onclick="etcCompute()">▶ Calcola tempo di posa</button>
+  </div>
+</div>
+
+<!-- RISULTATI -->
+<div>
+  <div class="etc-result-panel">
+    <div id="etc-no-result" class="etc-no-result">
+      Imposta i parametri<br>e premi Calcola<br><br>
+      <span style="font-size:11px;opacity:0.5">◷ Exposure Time Calculator</span>
+    </div>
+    <div id="etc-result" style="display:none">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div style="background:rgba(74,158,255,0.08);border:0.5px solid var(--border2);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Exp. singolo sub</div>
+          <div id="e-res-sub" style="font-size:38px;font-weight:600;font-family:var(--mono);color:var(--accent2);line-height:1"></div>
+          <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:4px">secondi</div>
+          <div id="e-res-sub-snr" style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:5px;line-height:1.4"></div>
+        </div>
+        <div style="background:rgba(80,224,144,0.07);border:0.5px solid rgba(80,224,144,0.2);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Sub per SNR target</div>
+          <div id="e-res-nsub" style="font-size:38px;font-weight:600;font-family:var(--mono);color:var(--green);line-height:1"></div>
+          <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:4px">sub</div>
+          <div id="e-res-total-sub" style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:5px;line-height:1.4"></div>
+        </div>
+        <div style="background:rgba(167,139,250,0.07);border:0.5px solid rgba(167,139,250,0.2);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">SNR con N verifica</div>
+          <div id="e-res-snr-nsub" style="font-size:38px;font-weight:600;font-family:var(--mono);color:var(--purple);line-height:1"></div>
+          <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:4px">SNR stack</div>
+          <div id="e-res-nsub-detail" style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:5px;line-height:1.4"></div>
+        </div>
+      </div>
+
+      <div class="etc-result-panel" style="margin-bottom:12px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Budget rumore — singolo sub</div>
+        <div id="e-noise-bars"></div>
+      </div>
+
+      <div class="etc-result-panel" style="margin-bottom:12px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Dettaglio calcolo</div>
+        <div id="e-breakdown"></div>
+      </div>
+
+      <div class="stack-info" id="e-stack-info"></div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+</div>

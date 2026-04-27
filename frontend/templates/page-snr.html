@@ -1,0 +1,110 @@
+<!-- page-snr.html - contenuto della tab SNR -->
+
+<div class="wrap">
+
+<div class="cam-badge">
+  <div class="cam-field">Camera: <span>Moravian C3-26000M</span></div>
+  <div class="cam-field">Sensore: <span>Sony IMX571 BSI</span></div>
+  <div class="cam-field">Pixel: <span>3.76 µm</span></div>
+  <div class="cam-field" id="n-badge-fwc">FWC: <span>52 800 e⁻</span></div>
+  <div class="cam-field">ADC: <span>16 bit</span></div>
+  <div class="cam-field">Focale: <span id="n-focal-shown">4000</span> mm</div>
+</div>
+
+<div class="panel" style="margin-bottom:16px;">
+  <div class="panel-title">Parametri acquisizione</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px 28px;">
+
+    <!-- Gain selector -->
+    <div style="grid-column:1/-1;">
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:6px;">Modalità gain — Moravian C3-26000M / IMX571</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="n-gain-btns">
+        <button class="gain-btn active" onclick="setGain(0)" data-g="0">0 dB · 1× · 0.80 e⁻/ADU</button>
+        <button class="gain-btn" onclick="setGain(1)" data-g="1">9.7 dB · 3× · 0.26 e⁻/ADU</button>
+        <button class="gain-btn" onclick="setGain(2)" data-g="2">9.7 dB HCG · 3× · 0.26 e⁻/ADU</button>
+        <button class="gain-btn" onclick="setGain(3)" data-g="3">36 dB · 63× · 0.012 e⁻/ADU</button>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap;" id="n-gain-info">
+        <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">σ_r: <span id="n-rn-auto" style="color:var(--accent2);font-weight:700">3.51 e⁻</span></span>
+        <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">FWC: <span id="n-fwc-auto" style="color:var(--accent2);font-weight:700">52 800 e⁻</span></span>
+        <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">e⁻/ADU: <span id="n-eadu-auto" style="color:var(--accent2);font-weight:700">0.80</span></span>
+        <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">Offset: <span id="n-off-auto" style="color:var(--text2)">2749 ADU</span></span>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Segnale stella (e⁻/px/s)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="1" max="500" value="80" step="1" id="n-sig" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <span class="pv" id="n-sig-v">80</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Fondo cielo (e⁻/px/s)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="1" max="200" value="30" step="1" id="n-sky" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <span class="pv" id="n-sky-v">30</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Dark current (e⁻/px/s)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="0" max="5" value="0.2" step="0.1" id="n-dc" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <span class="pv" id="n-dc-v">0.2</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Esposizione (s)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="30" max="600" value="120" step="10" id="n-exp" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <span class="pv" id="n-exp-v">120</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Stella in acquisiz. (ADU)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="1000" max="51000" value="25000" step="500" id="n-staradu" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <span class="pv" id="n-staradu-v">25000</span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">σ_r lettura (e⁻) — automatico da gain</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="0.5" max="8" value="3.51" step="0.01" id="n-rn" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <span class="pv" id="n-rn-v">3.51</span>
+      </div>
+      <div style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:2px;">Puoi sovrascrivere manualmente</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="snr-tabs">
+  <button class="snr-tab active" onclick="snrTab('snr')">SNR vs binning</button>
+  <button class="snr-tab" onclick="snrTab('sampling')">Campionamento</button>
+  <button class="snr-tab" onclick="snrTab('sat')">Saturazione</button>
+  <button class="snr-tab" onclick="snrTab('strategy')">Strategia</button>
+</div>
+
+<div id="snr-tab-snr">
+  <div class="cards-grid" id="n-snr-cards"></div>
+  <div class="chart-wrap"><canvas id="n-snr-chart" style="height:260px;width:100%"></canvas></div>
+  <div class="snr-info" id="n-regime-info"></div>
+</div>
+<div id="snr-tab-sampling" style="display:none">
+  <div class="cards-grid" id="n-samp-cards"></div>
+  <div class="chart-wrap"><canvas id="n-samp-chart" style="height:260px;width:100%"></canvas></div>
+  <div class="snr-info" id="n-samp-info"></div>
+</div>
+<div id="snr-tab-sat" style="display:none">
+  <div class="snr-info">Stella acquisita a <span id="n-sat-ref" class="hi">—</span> ADU in 1×1. FWC fisico: <span id="n-sat-fwc" class="hi">52 800</span> e⁻.</div>
+  <div id="n-sat-bars"></div>
+  <div class="chart-wrap" style="margin-top:10px"><canvas id="n-sat-chart" style="height:260px;width:100%"></canvas></div>
+  <div class="snr-info" id="n-sat-info"></div>
+</div>
+<div id="snr-tab-strategy" style="display:none">
+  <div class="cards-grid" id="n-strat-cards"></div>
+  <div class="formula-box" id="n-strat-formula"></div>
+  <div class="snr-info" id="n-strat-info"></div>
+</div>
+</div>

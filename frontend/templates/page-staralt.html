@@ -1,0 +1,76 @@
+<!-- page-staralt.html - contenuto della tab STARALT -->
+
+<div class="wrap">
+<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start;" id="staralt-grid">
+
+<div>
+  <div class="panel">
+    <div class="panel-title">Osservatorio</div>
+    <div class="row2">
+      <div class="field"><label>Latitudine °N</label><input type="number" id="s-lat" value="42.27" step="0.001"></div>
+      <div class="field"><label>Longitudine °E</label><input type="number" id="s-lon" value="12.80" step="0.001"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Altitudine m</label><input type="number" id="s-elev" value="460"></div>
+      <div class="field"><label>Fuso orario h</label><input type="number" id="s-tz" value="2" step="1" min="-12" max="14"></div>
+    </div>
+    <div class="field"><label>Alt. minima osservazione °</label><input type="number" id="s-minalt" value="20" min="0" max="60"></div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Oggetto</div>
+    <div class="field">
+      <label>Cerca nel catalogo</label>
+      <input type="search" id="s-catSearch" placeholder="es. M42, NGC 224, Andromeda…" oninput="filterCatalog()" autocomplete="off">
+    </div>
+    <div class="catalog-list" id="s-catList"></div>
+    <div class="divider"></div>
+    <div class="field"><label>RA (hh mm ss oppure hh.hhh)</label><input type="text" id="s-ra" placeholder="05 34 32"></div>
+    <div class="field"><label>Dec (±dd mm ss oppure ±dd.ddd)</label><input type="text" id="s-dec" placeholder="+22 00 52"></div>
+    <div class="field"><label>Nome oggetto</label><input type="text" id="s-objname" placeholder="es. M42"></div>
+    <div class="field"><label>Data osservazione</label><input type="date" id="s-obsdate"></div>
+    <div id="s-objResult" class="obj-result"></div>
+    <button class="btn" onclick="sCompute()">▶ Calcola</button>
+    <button class="btn btn-sec" onclick="sComputeTonight()">★ Stasera (notte intera)</button>
+
+    <div class="divider" style="margin-top:14px"></div>
+
+    <!-- Form aggiungi oggetto al catalogo -->
+    <button class="btn btn-sec" onclick="syncAddFormFromMain();
+      document.getElementById('s-add-obj-wrapper').style.display=
+      document.getElementById('s-add-obj-wrapper').style.display==='none'?'block':'none';"
+      style="margin-top:0;">
+      ＋ Aggiungi oggetto al catalogo
+    </button>
+    <div id="s-add-obj-wrapper" style="display:none;margin-top:10px;">
+      <div class="panel" style="padding:14px;">
+        <div id="s-add-obj-form"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="s-rightPanel">
+  <div class="no-result" id="s-noResult">Inserisci le coordinate di un oggetto<br>e premi Calcola</div>
+  <div id="s-resultArea" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;" id="s-infoGrid"></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;" id="s-moonGrid"></div>
+    <div class="chart-wrap">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px" id="s-chartTitle">ALTITUDINE vs ORA</div>
+      <div style="position:relative;width:100%;height:300px;">
+        <canvas id="s-altChart" style="display:block;"></canvas>
+        <div id="s-tooltip" style="display:none;position:absolute;pointer-events:none;background:rgba(6,10,20,0.97);border:0.5px solid rgba(100,160,255,0.3);border-radius:7px;padding:8px 12px;font-family:'Space Mono',monospace;font-size:11px;color:rgba(210,230,255,0.92);line-height:1.7;white-space:nowrap;z-index:10;"></div>
+      </div>
+      <div class="legend-row">
+        <span class="legend-item"><span class="legend-dot" style="background:#4a9eff"></span>oggetto</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#e8d5a0;opacity:0.8"></span>Luna</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--gold);height:1px;border-top:1px dashed var(--gold)"></span>transito</span>
+        <span class="legend-item"><span class="legend-dot" style="background:rgba(80,224,144,0.4);width:14px;height:10px;border-radius:2px"></span>finestra osserv.</span>
+        <span class="legend-item"><span class="legend-dot" style="background:rgba(232,213,160,0.22);width:14px;height:10px;border-radius:2px"></span>Luna sopra oriz.</span>
+      </div>
+    </div>
+    <div id="s-obsWindowDiv" class="obs-window" style="margin-top:12px;display:none"></div>
+  </div>
+</div>
+
+</div>
+</div>

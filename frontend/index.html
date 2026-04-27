@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Observatory Tools — Frasso Sabino</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+
+<!-- ── APP HEADER ──────────────────────────────────────────────── -->
+<div class="app-header">
+  <div class="app-header-inner">
+    <div class="app-logo">★ OBS<span>/tools</span></div>
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="showPage('staralt')" id="btn-staralt">
+        <span class="tb-icon">◎</span> StarAlt
+      </button>
+      <button class="tab-btn" onclick="showPage('snr')" id="btn-snr">
+        <span class="tb-icon">◈</span> SNR Analyzer
+      </button>
+      <button class="tab-btn" onclick="showPage('etc')" id="btn-etc">
+        <span class="tb-icon">◷</span> ETC
+      </button>
+      <button class="tab-btn" onclick="showPage('skymonitor')" id="btn-skymonitor">
+        <span class="tb-icon">◌</span> Sky Monitor
+      </button>
+      <button class="tab-btn" onclick="showPage('help')" id="btn-help">
+        <span class="tb-icon">?</span> Help
+      </button>
+    </nav>
+  </div>
+</div>
+
+<!-- ── PAGES ────────────────────────────────────────────────────── -->
+<div id="page-staralt" class="page active"></div>
+<div id="page-snr"     class="page"></div>
+<div id="page-etc"     class="page"></div>
+<div id="page-skymonitor" class="page"></div>
+<div id="page-help" class="page"></div>
+
+<!-- ── VENDOR ───────────────────────────────────────────────────── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- ── APP MODULES ──────────────────────────────────────────────── -->
+<script src="/static/js/astro-utils.js"></script>
+<script src="/static/js/catalog.js"></script>
+<script src="/static/js/staralt.js"></script>
+<script src="/static/js/snr.js"></script>
+<script src="/static/js/etc.js"></script>
+<script src="/static/js/skymonitor.js"></script>
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>

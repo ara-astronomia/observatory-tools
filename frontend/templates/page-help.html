@@ -1,0 +1,362 @@
+<!-- page-help.html — Tab Help: manuale d'uso -->
+<div class="wrap" style="max-width:900px;">
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+  <div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Manuale d'uso</div>
+    <div style="font-size:20px;font-weight:600;color:var(--accent2);">Observatory Tools</div>
+  </div>
+  <div style="font-family:var(--mono);font-size:11px;color:var(--text2);">
+    Frasso Sabino Observatory · v0.2
+  </div>
+</div>
+
+<!-- INDICE -->
+<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+  <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Indice</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+    <a href="#staralt" class="help-idx-link">◎ StarAlt — altitudine e osservabilità</a>
+    <a href="#snr"     class="help-idx-link">◈ SNR Analyzer — analisi rumore</a>
+    <a href="#etc"     class="help-idx-link">◷ ETC — tempo di esposizione</a>
+    <a href="#skymon"  class="help-idx-link">◌ Sky Monitor — database cielo</a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     STARALT
+════════════════════════════════════════════════════ -->
+<div id="staralt" class="help-section">
+  <div class="help-section-header">
+    <span class="help-icon">◎</span> StarAlt — Altitudine e Osservabilità
+  </div>
+
+  <div class="help-text">
+    StarAlt calcola l'altitudine di un oggetto celeste durante la notte, mostrando la finestra 
+    osservativa, il transito al meridiano e le condizioni lunari.
+  </div>
+
+  <div class="help-sub">Ricerca oggetto</div>
+  <div class="help-text">
+    Digita nel campo <b>Cerca nel catalogo</b> il nome dell'oggetto (es. <code>M42</code>, 
+    <code>NGC 7000</code>, <code>Andromeda</code>). Il catalogo include ~70 oggetti Messier e NGC 
+    selezionati. Gli oggetti aggiunti da te appaiono con il badge <span style="font-size:9px;background:rgba(167,139,250,0.2);color:#a78bfa;border-radius:3px;padding:1px 5px;">utente</span>.
+    Puoi anche inserire RA/Dec manualmente in qualsiasi formato:
+  </div>
+  <div class="help-code">
+    RA:  05 34 32   oppure   5.575   (ore decimali)<br>
+    Dec: +22 00 52  oppure  +22.014  (gradi decimali)
+  </div>
+
+  <div class="help-sub">Aggiungi oggetto al catalogo</div>
+  <div class="help-text">
+    Il bottone <b>+ Aggiungi oggetto al catalogo</b> espande un form che permette di salvare 
+    un nuovo oggetto nel database. I campi RA e Dec vengono precompilati automaticamente 
+    se hai già inserito le coordinate nei campi principali. L'oggetto salvato è subito 
+    cercabile nella sessione corrente e al prossimo avvio (persistito nel DB).
+  </div>
+
+  <div class="help-sub">Grafico altitudine</div>
+  <div class="help-text">
+    Il grafico mostra l'altitudine dell'oggetto (blu) e della Luna (tratteggiato avorio) 
+    per la notte selezionata. Passa il mouse sul grafico per vedere il <b>tooltip</b> con:
+  </div>
+  <div class="help-list">
+    <div class="help-list-item">⟶ Ora locale</div>
+    <div class="help-list-item">⟶ Altitudine oggetto in gradi</div>
+    <div class="help-list-item">⟶ Airmass (calcolato da 1/cos(90°-alt), mostrato solo se alt > 5°)</div>
+    <div class="help-list-item">⟶ Altitudine Luna in gradi</div>
+    <div class="help-list-item">⟶ Illuminazione Luna %</div>
+    <div class="help-list-item">⟶ Distanza angolare Luna-oggetto in gradi</div>
+  </div>
+  <div class="help-text" style="margin-top:6px;">
+    Le zone colorate nel grafico indicano: 
+    <span style="color:rgba(80,224,144,0.9)">■</span> finestra osservabile (alt ≥ minima + notte astronomica),
+    <span style="color:rgba(232,213,160,0.7)">■</span> Luna sopra l'orizzonte,
+    <span style="color:rgba(15,30,80,0.8)">■</span> zona diurna/crepuscolare.
+    La linea tratteggiata verticale indica il transito al meridiano.
+  </div>
+
+  <div class="help-sub">Card informative</div>
+  <div class="help-text">
+    Sopra il grafico appaiono 7 card: 3 sull'oggetto (altitudine ora, altitudine massima, 
+    notte astronomica) e 4 sulla Luna (fase, illuminazione, distanza minima dalla notte, 
+    elongazione Sole-Luna). Il colore dell'illuminazione indica la qualità osservativa: 
+    <span style="color:var(--green)">verde &lt;25%</span>, 
+    <span style="color:var(--gold)">giallo 25–60%</span>, 
+    <span style="color:var(--red)">rosso &gt;60%</span>.
+  </div>
+
+  <div class="help-sub">Parametri osservatorio</div>
+  <div class="help-text">
+    Latitudine, longitudine e fuso orario sono preimpostati su Frasso Sabino (42.27°N, 12.80°E, UTC+2). 
+    Modificali se usi il tool da un'altra posizione. L'<b>altitudine minima</b> definisce la soglia 
+    per la finestra osservativa (default 20°, considerare almeno 15–20° per evitare l'estinzione 
+    atmosferica eccessiva).
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SNR ANALYZER
+════════════════════════════════════════════════════ -->
+<div id="snr" class="help-section" style="margin-top:16px;">
+  <div class="help-section-header">
+    <span class="help-icon">◈</span> SNR Analyzer — Analisi del Rumore
+  </div>
+
+  <div class="help-text">
+    L'SNR Analyzer mostra come varia il rapporto segnale-rumore al variare del binning, 
+    del campionamento e delle condizioni di acquisizione. È uno strumento esplorativo 
+    per capire i trade-off del setup.
+  </div>
+
+  <div class="help-sub">Parametri di acquisizione</div>
+  <div class="help-text">
+    I sei slider in cima controllano in tempo reale tutti i grafici:
+  </div>
+  <div class="help-list">
+    <div class="help-list-item"><b>Segnale stella</b> — flusso della sorgente in e⁻/px/s. Valori tipici: 10–500 per deep sky.</div>
+    <div class="help-list-item"><b>Fondo cielo</b> — cielo in e⁻/px/s. Misurabile direttamente sulle immagini calibrate.</div>
+    <div class="help-list-item"><b>σ_r</b> — rumore di lettura. Dipende dal gain scelto: 3.51 e⁻ (LCG), 1.46 e⁻ (HCG LN).</div>
+    <div class="help-list-item"><b>Dark current</b> — corrente di buio in e⁻/px/s. Per IMX571 raffreddato: ~0.0004–0.05 e⁻/px/s.</div>
+    <div class="help-list-item"><b>Esposizione</b> — tempo del singolo sub in secondi.</div>
+    <div class="help-list-item"><b>Stella in acquisizione</b> — valore ADU della stella per la verifica di saturazione.</div>
+  </div>
+
+  <div class="help-sub">Tab SNR vs Binning</div>
+  <div class="help-text">
+    Confronta l'SNR tra strategie di binning. Il binning HW (in-camera) è sempre superiore 
+    al SW perché non accumula il rumore di lettura. La card <b>t_eq</b> mostra il tempo 
+    di pareggio sky/read: se la tua esposizione è molto maggiore, sei in regime sky-limited 
+    e il vantaggio HW vs SW è minimo.
+  </div>
+
+  <div class="help-sub">Tab Campionamento</div>
+  <div class="help-text">
+    Mostra la scala di plate in arcsec/px per ogni binning, con le linee di riferimento 
+    per il seeing del sito (2.5"–3"). La zona verde indica il campionamento ottimale 
+    (seeing/3 px/FWHM), la zona rossa indica il limite di Nyquist (seeing/2).
+    <b>Strategia raccomandata</b>: HW 2×2 (0.62"/px) + SW 2×2 in post = equiv. 4×4 (1.24"/px), 
+    zona Nyquist con seeing 2.5"–3".
+  </div>
+
+  <div class="help-sub">Tab Saturazione</div>
+  <div class="help-text">
+    Confronta Sum vs Average per il binning SW. Con Sum, i valori ADU scalano di ×N² 
+    e rischiano overflow a 16 bit. Con Average la scala rimane invariata. 
+    <b>Usare sempre Average in post-processing.</b>
+    Le barre mostrano la percentuale del range ADC (65 535) occupata dalla stella target.
+  </div>
+
+  <div class="help-sub">Tab Strategia</div>
+  <div class="help-text">
+    Riepilogo della strategia ottimale per il setup di Frasso Sabino: 
+    acquisizione HW 2×2 (Average), riduzione dimensione file da 50.9 MB a 12.7 MB, 
+    bin SW 2×2 in post per campionamento zona Nyquist. Aggiorna il diametro dello specchio 
+    e l'f/ratio nell'ETC per ricalcolare la strategia con la nuova ottica.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     ETC
+════════════════════════════════════════════════════ -->
+<div id="etc" class="help-section" style="margin-top:16px;">
+  <div class="help-section-header">
+    <span class="help-icon">◷</span> ETC — Exposure Time Calculator
+  </div>
+
+  <div class="help-text">
+    L'ETC calcola il tempo di esposizione necessario per raggiungere un target SNR su 
+    uno stack fotometrico. Opera in modalità calibrata: utilizza lo Zero-Point misurato 
+    su stelle standard per stimare il flusso della stella target.
+  </div>
+
+  <div class="help-sub">Camera &amp; Gain</div>
+  <div class="help-text">
+    Seleziona il <b>preset gain</b> usato durante l'acquisizione. Il rumore di lettura (σ_r) 
+    e il Full Well Capacity (FWC) si aggiornano automaticamente. Per fotometria di precisione 
+    su stelle di 9–12 mag con esposizioni di 15–60s, il Gain=0 (LCG) è la scelta standard.
+    <br>Il <b>binning HW</b> scala il fondo cielo e il dark per N² ma non moltiplica il flusso 
+    stellare (i fotoni sono gli stessi indipendentemente dal binning).
+    <br><b>Diametro</b> e <b>rapporto focale</b> aggiornano focale e plate scale usati nel calcolo 
+    dell'apertura fotometrica.
+  </div>
+
+  <div class="help-sub">Sorgente &amp; Fotometria</div>
+  <div class="help-text">
+    Inserisci la <b>magnitudine</b> della stella target nel sistema Vega/Johnson-Cousins 
+    corrispondente al filtro scelto. Lo ZP predefinito è teorico — sostituiscilo con il 
+    <b>ZP calibrato</b> non appena disponibile da una notte fotometrica su stelle Landolt o APASS.
+    <br>Il campo <b>Fondo cielo</b> accetta il valore misurato sulle tue immagini (e⁻/px/s). 
+    Se Sky Monitor ha abbastanza dati, il campo si aggiorna automaticamente quando cambi 
+    filtro o airmass (toggle <b>auto da DB sky</b>).
+  </div>
+
+  <div class="help-sub">Airmass &amp; Atmosfera</div>
+  <div class="help-text">
+    Inserisci l'altitudine dell'oggetto in gradi — l'airmass viene calcolato automaticamente 
+    come X = 1/cos(90°-alt). Usa <b>↗ Importa da StarAlt</b> per portare direttamente 
+    l'altitudine attuale dell'oggetto calcolato in StarAlt.
+    <br>Il coefficiente di estinzione k è preimpostato per filtro (vedi report tecnico). 
+    La correzione applicata è: mag_eff = mag + k·X.
+  </div>
+
+  <div class="help-sub">Apertura fotometrica</div>
+  <div class="help-text">
+    Il <b>Seeing FWHM</b> inserito (in arcsec) definisce la dimensione della PSF. 
+    Il <b>raggio apertura</b> (default 1.4·FWHM) è il valore ottimale per SNR massimo 
+    in fotometria di apertura (Howell 1989). Il numero di pixel nell'apertura viene 
+    calcolato automaticamente come N_px = π·r².
+    <br>Il controllo di <b>saturazione</b> confronta il segnale nel pixel di picco della PSF 
+    (non il totale) con il FWC — verde &lt;60%, giallo 60–90%, rosso &gt;90%.
+  </div>
+
+  <div class="help-sub">Obiettivo SNR e risultati</div>
+  <div class="help-text">
+    Il flusso previsto è:
+  </div>
+  <div class="help-list">
+    <div class="help-list-item"><b>Card 1 — Exp. singolo sub</b>: tempo ottimale per raggiungere l'SNR target in un singolo frame. Se supera tExpMax, usa tExpMax e lo segnala.</div>
+    <div class="help-list-item"><b>Card 2 — Sub per SNR target</b>: numero di sub necessari per raggiungere l'SNR target dello stack. Mostra anche il tempo totale di sessione.</div>
+    <div class="help-list-item"><b>Card 3 — SNR con N verifica</b>: dato il numero di sub che vuoi fare, mostra che SNR stack ottieni. Verde se supera il target, arancione se non basta.</div>
+  </div>
+  <div class="help-text" style="margin-top:6px;">
+    Il <b>budget rumore</b> mostra la percentuale di ciascuna sorgente di rumore sul totale. 
+    In regime sky-limited (tipico), il cielo domina e il rumore di lettura è trascurabile.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SKY MONITOR
+════════════════════════════════════════════════════ -->
+<div id="skymon" class="help-section" style="margin-top:16px;margin-bottom:24px;">
+  <div class="help-section-header">
+    <span class="help-icon">◌</span> Sky Monitor — Database Fondo Cielo
+  </div>
+
+  <div class="help-text">
+    Sky Monitor raccoglie misure del fondo cielo (in e⁻/px/s) correlate alle condizioni 
+    osservative. Al crescere del numero di misure, il <b>predittore</b> stima automaticamente 
+    il fondo cielo atteso per le condizioni di una sessione futura.
+  </div>
+
+  <div class="help-sub">Come misurare il fondo cielo</div>
+  <div class="help-text">
+    Il valore del fondo cielo si misura direttamente sulle immagini calibrate (dopo 
+    sottrazione bias, dark e flat). Usa la media o la mediana su una regione priva di stelle. 
+    Il valore in ADU/px si converte in e⁻/px moltiplicando per il gain del sensore (e⁻/ADU).
+    Con Gain=0: 1 ADU = 0.80 e⁻.
+  </div>
+
+  <div class="help-sub">Inserimento misura</div>
+  <div class="help-text">
+    Compila i campi obbligatori (filtro, fondo cielo, airmass, illuminazione e distanza Luna) 
+    e premi <b>+ Salva misura</b>. Usa <b>↗ Importa da StarAlt</b> per portare automaticamente 
+    airmass e condizioni lunari dall'oggetto calcolato in StarAlt.
+    <br>Il campo <b>Seeing</b> è opzionale ma utile: il fondo cielo in e⁻/px/s dipende 
+    dalla plate scale e dal seeing — con seeing peggiore ogni pixel cattura più cielo.
+  </div>
+
+  <div class="help-sub">Grafico Sky vs Airmass</div>
+  <div class="help-text">
+    Lo scatter plot mostra la distribuzione delle misure per filtro in funzione dell'airmass. 
+    Usa i selettori in alto per filtrare per filtro fotometrico e condizione lunare 
+    (🌑 assente &lt;10%, 🌓 mezza 10–60%, 🌕 piena &gt;60%). 
+    Con abbastanza dati dovresti vedere una correlazione positiva sky-airmass: 
+    la pendenza in scala log-lineare fornisce il coefficiente di estinzione del cielo k_sky.
+  </div>
+
+  <div class="help-sub">Statistiche per filtro</div>
+  <div class="help-text">
+    La sezione statistiche mostra media, mediana e deviazione standard del fondo cielo 
+    per ogni filtro, separato per condizione lunare. Costruire una tabella di riferimento 
+    sky per filtro e condizione lunare è l'obiettivo a lungo termine di Sky Monitor.
+  </div>
+
+  <div class="help-sub">Predittore e integrazione ETC</div>
+  <div class="help-text">
+    Il predittore stima il fondo cielo per le condizioni inserite usando una media ponderata 
+    delle misure storiche (peso inversamente proporzionale alla distanza nello spazio 
+    airmass-illuminazione-distanza_luna). Richiede almeno 3 misure per filtro.
+    <br>Il bottone <b>→ Applica all'ETC</b> imposta il valore predetto nel campo sky dell'ETC 
+    e passa automaticamente alla tab ETC. Con il toggle <b>auto da DB sky</b> attivo nell'ETC, 
+    questo avviene automaticamente al cambio di filtro o airmass.
+  </div>
+</div>
+
+<style>
+.help-section {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.help-section-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent2);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.help-icon {
+  font-size: 18px;
+  color: var(--accent);
+}
+.help-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 14px;
+  margin-bottom: 5px;
+}
+.help-text {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.7;
+  margin-bottom: 4px;
+}
+.help-text b { color: var(--text); }
+.help-text code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--bg3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent2);
+}
+.help-code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent2);
+  background: var(--bg3);
+  border-left: 2px solid var(--border2);
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  margin: 6px 0;
+  line-height: 1.7;
+}
+.help-list {
+  margin: 6px 0 4px 8px;
+}
+.help-list-item {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.7;
+  padding: 1px 0;
+}
+.help-list-item b { color: var(--text); }
+.help-idx-link {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 3px 0;
+  display: block;
+  transition: color 0.15s;
+}
+.help-idx-link:hover { color: var(--accent2); }
+</style>
