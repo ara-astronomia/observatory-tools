@@ -7,9 +7,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
 import enum
+import os
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "observatory.db"
+DB_PATH = Path(os.getenv("DB_PATH", str(Path(__file__).parent / "observatory.db")))
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
