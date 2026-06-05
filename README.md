@@ -7,74 +7,94 @@ Strumenti di pianificazione osservativa per l'osservatorio di Frasso Sabino.
 ```
 observatory-tools/
 ├── Dockerfile
-├── docker-compose.yml
-├── README.md
+├── docker-compose.yml        ← sviluppo/build locale
+├── docker-compose.prod.yml   ← produzione (usa immagine da registry)
+├── pyproject.toml            ← dipendenze (uv)
 │
-├── backend/                    ← FastAPI
-│   ├── main.py                 ← entry point, serve frontend statico
-│   ├── requirements.txt
+├── backend/                  ← FastAPI + Python 3.13
+│   ├── main.py               ← entry point, serve frontend statico
 │   ├── routers/
-│   │   ├── catalog.py          ← CRUD catalogo oggetti utente
-│   │   └── skydb.py            ← CRUD + stats fondo cielo
+│   │   ├── catalog.py        ← CRUD catalogo oggetti utente
+│   │   └── skydb.py          ← CRUD + stats + predict fondo cielo
 │   ├── models/
-│   │   └── schemas.py          ← Pydantic models
+│   │   └── schemas.py        ← Pydantic models
 │   └── db/
-│       └── database.py         ← SQLAlchemy + SQLite
+│       ├── database.py       ← SQLAlchemy + SQLite
+│       └── observatory.db    ← DB di seed (incluso nel repo)
 │
-└── frontend/                   ← Vanilla JS, servito da FastAPI
-    ├── index.html              ← shell app
-    ├── css/
-    │   └── main.css
-    ├── js/
-    │   ├── astro-utils.js      ← JD, Alt/Az, Sole, Luna (Meeus)
-    │   ├── catalog.js          ← catalogo Messier/NGC + oggetti utente
-    │   ├── staralt.js          ← tab StarAlt
-    │   ├── snr.js              ← tab SNR Analyzer
-    │   ├── etc.js              ← tab ETC
-    │   ├── skymonitor.js       ← tab Sky Monitor (Step 3)
-    │   └── app.js              ← navigazione + boot
-    └── templates/
-        ├── page-staralt.html
-        ├── page-snr.html
-        └── page-etc.html
+├── frontend/                 ← Vanilla JS, servito da FastAPI
+│   ├── index.html            ← shell app
+│   ├── css/
+│   ├── js/
+│   │   ├── astro-utils.js    ← JD, Alt/Az, Sole, Luna (Meeus)
+│   │   ├── catalog.js        ← catalogo Messier/NGC + oggetti utente
+│   │   ├── staralt.js        ← tab StarAlt
+│   │   ├── snr.js            ← tab SNR Analyzer
+│   │   ├── etc.js            ← tab ETC
+│   │   ├── skymonitor.js     ← tab Sky Monitor
+│   │   └── app.js            ← navigazione + boot
+│   ├── templates/
+│   └── icons/                ← icone SVG (favicon, Heimdall)
+│
+└── tests/                    ← pytest (18 test unitari)
+    ├── conftest.py
+    ├── test_health.py
+    ├── test_catalog.py
+    └── test_skydb.py
 ```
 
-## Roadmap
+## Sviluppo locale
 
-| Step | Stato | Descrizione |
-|------|-------|-------------|
-| 1 | ✅ | Refactor frontend in file separati |
-| 2 | ✅ | Scheletro FastAPI + Docker |
-| 3 | 🔜 | Sky Monitor DB (misure fondo cielo) |
-| 4 | 🔜 | Catalogo utente via API attiva |
-| 5 | 🔜 | Integrazione ETC ← sky medio dal DB |
+```bash
+# Installa dipendenze (crea .venv con Python 3.13)
+uv sync
+
+# Avvia con hot-reload
+uv run uvicorn backend.main:app --reload --port 8000
+# → http://localhost:8000
+# → http://localhost:8000/docs  (Swagger)
+
+# Esegui i test
+uv run pytest -v
+
+# Aggiungi una dipendenza
+uv add <pacchetto>
+```
 
 ## Deploy
 
-### Sviluppo locale
+### Docker — build locale
 
 ```bash
-cd observatory-tools
-pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload --port 8000
-# → http://localhost:8000
+docker-compose up -d        # build + avvio
+docker-compose down         # stop
+docker-compose up --build   # rebuild dopo modifiche
 ```
 
-### Docker
+Il DB SQLite è montato come bind mount su `./tools/data/observatory.db` (crea la directory prima del primo avvio):
 
 ```bash
-docker-compose up -d
-# → http://localhost:8000
+mkdir -p tools/data
 ```
 
-### Heimdall
+### Docker — produzione
 
-Aggiungere nel portale Heimdall con URL `http://<host>:8000`.
-Le label nel `docker-compose.yml` configurano automaticamente nome e icona.
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+Usa l'immagine `araroma/observatory-tools` pubblicata su Docker Hub dalla CI.
+
+## CI/CD
+
+| Workflow | Trigger | Cosa fa |
+|---|---|---|
+| `ci.yml` | ogni push e PR | esegue `pytest` su Python 3.13 |
+| `docker-build.yml` | push su `main`, tag `v*`, label `build-docker` su PR | build multi-arch (`amd64` + `arm64`) e push su Docker Hub |
 
 ## API
 
-Documentazione interattiva disponibile su `/docs` (Swagger) e `/redoc`.
+Documentazione interattiva su `/docs` (Swagger) e `/redoc`.
 
 ```
 GET  /api/health              → health check
@@ -84,9 +104,12 @@ DEL  /api/catalog/{id}        → elimina oggetto
 
 GET  /api/skydb/              → misure fondo cielo
 POST /api/skydb/              → aggiungi misura
-GET  /api/skydb/stats         → statistiche per filtro
+GET  /api/skydb/stats         → statistiche per filtro e fase lunare
 GET  /api/skydb/predict       → stima sky date le condizioni
+DEL  /api/skydb/{id}          → elimina misura
 ```
+
+La variabile d'ambiente `DB_PATH` sovrascrive il path del DB (default: `backend/db/observatory.db`).
 
 ## Camera di riferimento
 
