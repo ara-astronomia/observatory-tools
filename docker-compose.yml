@@ -9,9 +9,3 @@ services:
     volumes:
       - ./tools/data:/app/data
     restart: unless-stopped
-    labels:
-      # Heimdall
-      - "heimdall.name=Observatory Tools"
-      - "heimdall.description=Strumenti pianificazione osservativa — Frasso Sabino"
-      - "heimdall.icon=telescope.png"
-      - "heimdall.url=http://observatory-tools:8000"
