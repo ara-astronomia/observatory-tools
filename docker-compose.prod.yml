@@ -1,6 +1,6 @@
 services:
   observatory-tools:
-    build: .
+    image: araroma/observatory-tools:feat-uv-docker-ci
     container_name: observatory-tools
     ports:
       - "8000:8000"
