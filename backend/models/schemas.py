@@ -2,7 +2,7 @@
 models/schemas.py — Pydantic models per validazione API
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -21,12 +21,11 @@ class CatalogObjectCreate(CatalogObjectBase):
     pass
 
 class CatalogObject(CatalogObjectBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     source: Literal["builtin", "user"] = "user"
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ── Sky Monitor ───────────────────────────────────────────────────
@@ -45,9 +44,8 @@ class SkyMeasurementCreate(SkyMeasurementBase):
     observed_at: Optional[datetime] = Field(None, description="Data/ora osservazione (default: now)")
 
 class SkyMeasurement(SkyMeasurementBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     observed_at: datetime
     created_at: datetime
-
-    class Config:
-        from_attributes = True

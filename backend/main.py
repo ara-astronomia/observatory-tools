@@ -3,6 +3,7 @@ Observatory Tools — FastAPI Backend
 Frasso Sabino Observatory
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -11,16 +12,19 @@ from pathlib import Path
 from backend.routers import catalog, skydb
 from backend.db.database import init_db
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="Observatory Tools",
     description="Strumenti di pianificazione osservativa — Frasso Sabino",
     version="0.2.0",
+    lifespan=lifespan,
 )
-
-# ── Init DB ───────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
-    init_db()
 
 # ── Static frontend ───────────────────────────────────────────────
 FRONTEND = Path(__file__).parent.parent / "frontend"
