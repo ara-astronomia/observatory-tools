@@ -120,7 +120,7 @@ Pixel: 3.76 µm · FWC: 52 800 e⁻ (0 dB) · ADC: 16 bit
 
 ## Telescopio di riferimento
 
-**500 mm f/8** → focale 4000 mm → scala 0.194 arcsec/px (1×1).
+**508 mm f/8** → focale 4064 mm → scala 0.1908 arcsec/px (1×1).
 Diametro e focale effettiva si aggiornano nella scheda Impostazioni.
 
 ## Zero-point di riferimento (filtro R)
