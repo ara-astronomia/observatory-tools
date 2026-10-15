@@ -118,7 +118,7 @@ Pixel: 3.76 µm · FWC: 51 000 e⁻ (LCG) · ADC: 16 bit
 
 ## Telescopio di riferimento
 
-**369 mm f/6.8** → focale 2509 mm → plate scale 0.309 arcsec/px (1×1)  
+**508 mm f8** → focale 4064 mm → plate scale 0.1908 arcsec/px (1×1)  
 Aggiornabile dai campi "Diametro" e "Rapporto focale" nell'ETC.
 
 ## Zero-point di riferimento (filtro R)
