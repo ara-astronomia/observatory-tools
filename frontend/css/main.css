@@ -149,8 +149,44 @@ input[type=search]{-webkit-appearance:none;}
 .etc-row-val{color:var(--text);font-weight:500;text-align:right;word-break:break-all;}
 
 /* ── ETC PAGE ── */
-.etc-grid{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;}
-@media(max-width:860px){.etc-grid{grid-template-columns:1fr;}}
+.etc-controls-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start;}
+.etc-control-column{display:grid;gap:14px;min-width:0;}
+.etc-control-column>.panel{min-width:0;}
+.etc-cam-badge{grid-template-columns:repeat(2,minmax(0,1fr));}
+.etc-camera-name{grid-column:1/-1;}
+.etc-results-section{margin-top:18px;}
+.etc-results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
+.etc-results-primary{display:grid;gap:14px;min-width:0;}
+.etc-summary-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.etc-summary-cards>div{min-width:0;padding:12px!important;}
+.etc-breakdown-panel,.etc-noise-panel{min-width:0;}
+.etc-breakdown-panel .etc-row{gap:12px;align-items:flex-start;}
+.etc-breakdown-panel .etc-row-label{flex:0 0 33%;}
+.etc-breakdown-panel .etc-row-val{min-width:0;text-align:right;overflow-wrap:anywhere;word-break:normal;}
+@media(max-width:1080px){
+  .etc-controls-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .etc-control-column:last-child{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;}
+  .etc-results-grid{grid-template-columns:1fr;}
+}
+@media(max-width:680px){
+  .etc-controls-grid{grid-template-columns:1fr;}
+  .etc-control-column:last-child{grid-column:auto;grid-template-columns:1fr;}
+  .etc-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .etc-summary-cards>div:last-child{grid-column:1/-1;}
+}
+@media(max-width:430px){
+  .etc-summary-cards{grid-template-columns:1fr;}
+  .etc-summary-cards>div:last-child{grid-column:auto;}
+  .etc-breakdown-panel .etc-row{display:block;}
+  .etc-breakdown-panel .etc-row-label{display:block;margin-bottom:2px;}
+  .etc-breakdown-panel .etc-row-val{display:block;text-align:left;}
+}
+@media(max-width:760px){
+  .app-header-inner{max-width:100%;padding:0 8px;}
+  .app-logo{display:none;}
+  .tab-nav{width:100%;padding:6px 0;flex-wrap:wrap;justify-content:center;}
+  .tab-btn{padding:7px 10px;font-size:11px;}
+}
 .etc-result-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:20px;}
 .etc-main-result{text-align:center;padding:24px 16px 16px;}
 .etc-result-val{font-size:56px;font-weight:600;font-family:var(--mono);color:var(--accent2);line-height:1;}
@@ -172,3 +208,45 @@ input[type=search]{-webkit-appearance:none;}
 .etc-no-result{text-align:center;padding:50px 20px;color:var(--text2);font-family:var(--mono);font-size:13px;line-height:1.8;}
 .stack-info{background:rgba(80,224,144,0.06);border:0.5px solid rgba(80,224,144,0.2);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:12px;font-family:var(--mono);line-height:1.7;}
 .stack-title{color:var(--green);font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.snr-acq-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 28px;}
+.snr-acq-grid>div{min-width:0;}
+@media(max-width:850px){.snr-acq-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:560px){.snr-acq-grid{grid-template-columns:minmax(0,1fr);}}
+.snr-number{width:88px;min-width:88px;box-sizing:border-box;padding:5px 6px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);font:11px var(--mono);text-align:right;}
+.snr-number:focus{outline:1px solid var(--accent);}
+
+.snr-number[readonly]{opacity:.85;cursor:default;}
+
+.snr-cal-panel{margin-bottom:16px;}
+.snr-cal-panel .snr-info{margin:0 0 12px;}
+.snr-cal-table-wrap{overflow-x:auto;}
+.snr-cal-table{width:100%;min-width:520px;border-collapse:collapse;font-family:var(--mono);font-size:11px;}
+.snr-cal-table th{text-align:left;color:var(--text2);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--border2);}
+.snr-cal-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.snr-cal-table td input{width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font:12px var(--mono);padding:7px 8px;}
+.snr-cal-table td input:focus{outline:1px solid var(--accent);}
+.snr-cal-table td:last-child{width:42px;text-align:right;}
+.snr-cal-table .snr-cal-residual{width:100px;text-align:right;color:var(--text2);}
+.snr-cal-table .snr-cal-residual.wa{color:var(--gold);}
+.snr-field-note.wa{color:var(--gold);font-weight:700;}
+.snr-cal-empty{color:var(--text2);text-align:center;padding:18px 10px!important;}
+.snr-cal-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+.snr-cal-btn{padding:7px 11px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);font:11px var(--mono);cursor:pointer;}
+.snr-cal-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent2);}
+.snr-cal-btn:disabled{opacity:.5;cursor:default;}
+.snr-cal-remove{background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--red);font-size:18px;line-height:22px;width:28px;height:28px;cursor:pointer;}
+.snr-cal-remove:hover{border-color:var(--red);}
+.snr-cal-target{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-top:14px;}
+.snr-cal-target .field{margin:0;flex:0 1 300px;}
+.snr-cal-apply{background:rgba(74,158,255,0.15);border-color:var(--accent);}
+
+.snr-field-note{font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:4px;}
+
+.field-hint{font-size:10px;line-height:1.4;color:var(--text2);margin-top:4px;font-family:var(--mono);}
+
+/* ── IMPOSTAZIONI CONDIVISE ── */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 18px;}
+.settings-gain-table{min-width:700px;}
+.settings-gain-table td:first-child{min-width:170px;}
+.settings-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.settings-actions .btn{width:auto;min-width:165px;margin:0;}

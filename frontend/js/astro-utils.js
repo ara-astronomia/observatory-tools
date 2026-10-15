@@ -32,7 +32,34 @@ function moonIllum(J){const mn=moonPos(J),su=sunPos(J);const el=Math.acos(Math.m
 function phaseIcon(p){if(p<0.03||p>0.97)return'🌑';if(p<0.22)return'🌒';if(p<0.28)return'🌓';if(p<0.47)return'🌔';if(p<0.53)return'🌕';if(p<0.72)return'🌖';if(p<0.78)return'🌗';return'🌘';}
 function phaseName(p){if(p<0.03||p>0.97)return'Luna Nuova';if(p<0.22)return'Falce cresc.';if(p<0.28)return'Primo Quarto';if(p<0.47)return'Gibbosa cresc.';if(p<0.53)return'Luna Piena';if(p<0.72)return'Gibbosa cal.';if(p<0.78)return'Ultimo Quarto';return'Falce cal.';}
 function angDist(r1,d1,r2,d2){const c=Math.sin(d1*D2R)*Math.sin(d2*D2R)+Math.cos(d1*D2R)*Math.cos(d2*D2R)*Math.cos((r1-r2)*15*D2R);return Math.acos(Math.max(-1,Math.min(1,c)))*R2D;}
-function findTwilight(date,lat,lon,tz){const base=new Date(date);base.setHours(12,0,0,0);const jdN=jd(base)-tz/24;const thr=-18;let ss=null,sr=null;for(let h=12;h<=30;h+=0.05){const J=jdN+(h-12)/24;if(sunAlt(J,lat,lon)<thr&&sunAlt(J-0.05/24,lat,lon)>=thr){ss=h;break;}}for(let h=18;h<=36;h+=0.05){const J=jdN+(h-12)/24;if(sunAlt(J,lat,lon)>=thr&&sunAlt(J-0.05/24,lat,lon)<thr){sr=h;break;}}return{sunset:ss||18,sunrise:sr||30};}
+function jdLocalNoon(date,tz){return jd(new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),12)))-tz/24;}
+function findSolarCrossing(jdNoon,lat,lon,altitude,fromH,toH,rising){
+  const solarAlt=h=>sunAlt(jdNoon+(h-12)/24,lat,lon);
+  let previousH=fromH,previousAlt=solarAlt(fromH);
+  for(let h=fromH+0.1;h<=toH+0.00001;h+=0.1){
+    const currentAlt=solarAlt(h);
+    const crossed=rising?previousAlt<altitude&&currentAlt>=altitude:previousAlt>=altitude&&currentAlt<altitude;
+    if(crossed){
+      let low=previousH,high=h;
+      for(let i=0;i<18;i++){
+        const mid=(low+high)/2,midAlt=solarAlt(mid);
+        if(rising?midAlt<altitude:midAlt>=altitude)low=mid;else high=mid;
+      }
+      return (low+high)/2;
+    }
+    previousH=h;previousAlt=currentAlt;
+  }
+  return null;
+}
+function findTwilight(date,lat,lon,tz){
+  const jdNoon=jdLocalNoon(date,tz);
+  const dusk=findSolarCrossing(jdNoon,lat,lon,-18,12,30,false)??18;
+  const dawn=findSolarCrossing(jdNoon,lat,lon,-18,24,36,true)??30;
+  // Sole a -0,833°: centro geometrico corretto per rifrazione e semidiametro.
+  const sunset=findSolarCrossing(jdNoon,lat,lon,-0.8333,12,30,false)??dusk-1;
+  const sunrise=findSolarCrossing(jdNoon,lat,lon,-0.8333,24,36,true)??dawn+1;
+  return{sunset,sunrise,dusk,dawn};
+}
 
 // ══════════════════════════════════════════════════════════════════
 // STARALT

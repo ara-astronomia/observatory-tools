@@ -31,6 +31,7 @@ class CatalogObject(CatalogObjectBase):
 # ── Sky Monitor ───────────────────────────────────────────────────
 
 class SkyMeasurementBase(BaseModel):
+    setup_id: str = Field("legacy", min_length=1, max_length=1000, description="Configurazione di osservazione")
     filter_name: Literal["B", "V", "R", "I", "rp", "gp"] = Field(..., description="Filtro fotometrico")
     sky_e: float = Field(..., gt=0, description="Fondo cielo in e⁻/px/s")
     airmass_obj: float = Field(..., ge=1.0, le=5.0, description="Airmass dell'oggetto")

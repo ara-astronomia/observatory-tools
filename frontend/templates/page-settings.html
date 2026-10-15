@@ -1,0 +1,49 @@
+<!-- Impostazioni condivise: sito, ottica e camera -->
+<div class="wrap">
+  <div class="panel">
+    <div class="panel-title">Impostazioni generali</div>
+    <div class="snr-info">Questi valori sono la sorgente comune per StarAlt, ETC, SNR Analyzer e Sky Monitor. Premi <b>Salva e applica</b> dopo le modifiche. Le misure di calibrazione e fondo cielo restano legate alla configurazione con cui sono state registrate.</div>
+    <div class="settings-grid">
+      <div class="field"><label for="set-lat">Latitudine (°; Nord positiva)</label><input id="set-lat" type="number" step="0.0001" min="-90" max="90"></div>
+      <div class="field"><label for="set-lon">Longitudine (°; Est positiva)</label><input id="set-lon" type="number" step="0.0001" min="-180" max="180"></div>
+      <div class="field"><label for="set-elev">Altezza s.l.m. (m)</label><input id="set-elev" type="number" step="1" min="-500" max="10000"></div>
+      <div class="field"><label for="set-timezone">Fuso orario IANA</label><input id="set-timezone" type="text" placeholder="Europe/Rome"><div class="field-hint">Es. Europe/Rome. StarAlt calcola automaticamente ora legale e solare.</div></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="panel-title">Telescopio e riduttore</div>
+    <div class="settings-grid">
+      <div class="field"><label for="set-diameter">Diametro specchio (mm)</label><input id="set-diameter" type="number" step="1" min="50" max="5000" oninput="settingsUpdatePreview()"></div>
+      <div class="field"><label for="set-focal">Lunghezza focale effettiva (mm)</label><input id="set-focal" type="number" step="1" min="100" max="30000" oninput="settingsUpdatePreview()"><div class="field-hint">Inserisci la focale reale con eventuale riduttore installato.</div></div>
+    </div>
+    <div class="snr-info" id="settings-preview"></div>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="panel-title">Camera</div>
+    <div class="settings-grid">
+      <div class="field"><label for="set-camera">Modello camera</label><input id="set-camera" type="text" maxlength="80"></div>
+      <div class="field"><label for="set-sensor">Sensore</label><input id="set-sensor" type="text" maxlength="80"></div>
+      <div class="field"><label for="set-pixel">Dimensione pixel (µm)</label><input id="set-pixel" type="number" step="0.01" min="0.1" oninput="settingsUpdatePreview()"></div>
+      <div class="field"><label for="set-width">Larghezza sensore (px)</label><input id="set-width" type="number" step="1" min="1"></div>
+      <div class="field"><label for="set-height">Altezza sensore (px)</label><input id="set-height" type="number" step="1" min="1"></div>
+      <div class="field"><label for="set-adc">ADC (bit)</label><input id="set-adc" type="number" step="1" min="8" max="32"></div>
+      <div class="field"><label for="set-dark">Dark current iniziale (e⁻/px/s)</label><input id="set-dark" type="number" step="any" min="0"><div class="field-hint">Valore proposto in SNR ed ETC; modificabile per la temperatura della ripresa.</div></div>
+      <div class="field"><label for="set-native-bin">Binning in camera</label><select id="set-native-bin"><option value="1">Solo 1×1</option><option value="2">Fino a 2×2 Average</option></select><div class="field-hint">Il confronto SNR assume media di pixel letti indipendentemente.</div></div>
+    </div>
+    <div class="panel-title" style="margin-top:12px">Modalità gain</div>
+    <div class="snr-cal-table-wrap">
+      <table class="snr-cal-table settings-gain-table">
+        <thead><tr><th>Nome</th><th>Gain #</th><th>σ_r (e⁻)</th><th>FWC (e⁻)</th><th>e⁻/ADU</th><th></th></tr></thead>
+        <tbody id="set-gain-rows"></tbody>
+      </table>
+    </div>
+    <button type="button" class="snr-cal-btn" onclick="settingsAddGain()" style="margin-top:10px">+ Aggiungi modalità</button>
+  </div>
+  <div class="settings-actions">
+    <button type="button" class="btn" onclick="settingsSave()">Salva e applica</button>
+    <button type="button" class="snr-cal-btn" onclick="settingsExport()">Esporta JSON</button>
+    <button type="button" class="snr-cal-btn" onclick="document.getElementById('settings-import-file').click()">Importa JSON</button>
+    <input id="settings-import-file" type="file" accept=".json,application/json" hidden onchange="settingsImport(event)">
+  </div>
+  <div id="settings-status" class="snr-info" role="status"></div>
+</div>

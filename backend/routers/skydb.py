@@ -23,10 +23,11 @@ router = APIRouter()
 @router.get("/", response_model=List[SkyMeasurement])
 def get_measurements(
     filter_name: Optional[str] = Query(None, description="Filtra per filtro es. 'R'"),
+    setup_id: str = Query("legacy", min_length=1, max_length=1000),
     limit: int = Query(100, le=1000),
     db: Session = Depends(get_db)
 ):
-    q = db.query(SkyORM)
+    q = db.query(SkyORM).filter(SkyORM.setup_id == setup_id)
     if filter_name:
         q = q.filter(SkyORM.filter_name == filter_name)
     return q.order_by(SkyORM.observed_at.desc()).limit(limit).all()
@@ -35,6 +36,7 @@ def get_measurements(
 @router.post("/", response_model=SkyMeasurement, status_code=201)
 def add_measurement(m: SkyMeasurementCreate, db: Session = Depends(get_db)):
     db_m = SkyORM(
+        setup_id     = m.setup_id,
         filter_name  = m.filter_name,
         sky_e        = m.sky_e,
         airmass_obj  = m.airmass_obj,
@@ -54,6 +56,7 @@ def add_measurement(m: SkyMeasurementCreate, db: Session = Depends(get_db)):
 @router.get("/stats")
 def get_stats(
     filter_name: Optional[str] = Query(None),
+    setup_id: str = Query("legacy", min_length=1, max_length=1000),
     db: Session = Depends(get_db)
 ):
     """
@@ -61,7 +64,7 @@ def get_stats(
     - sky medio, mediano, std
     - separato per condizione lunare (assente <10%, quarto 10-60%, piena >60%)
     """
-    q = db.query(SkyORM)
+    q = db.query(SkyORM).filter(SkyORM.setup_id == setup_id)
     if filter_name:
         q = q.filter(SkyORM.filter_name == filter_name)
 
@@ -97,6 +100,7 @@ def predict_sky(
     airmass: float = Query(..., ge=1.0, le=5.0),
     moon_illum: float = Query(..., ge=0, le=100),
     moon_dist: float = Query(..., ge=0, le=180),
+    setup_id: str = Query("legacy", min_length=1, max_length=1000),
     db: Session = Depends(get_db)
 ):
     """
@@ -104,7 +108,10 @@ def predict_sky(
     delle misure più simili nel DB.
     Restituisce None se il DB non ha abbastanza dati (< 3 misure).
     """
-    rows = db.query(SkyORM).filter(SkyORM.filter_name == filter_name).all()
+    rows = db.query(SkyORM).filter(
+        SkyORM.filter_name == filter_name,
+        SkyORM.setup_id == setup_id,
+    ).all()
     if len(rows) < 3:
         return {"sky_e": None, "n_used": len(rows), "message": "Dati insufficienti (< 3 misure)"}
 

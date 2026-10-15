@@ -3,80 +3,126 @@
 <div class="wrap">
 
 <div class="cam-badge">
-  <div class="cam-field">Camera: <span>Moravian C3-26000M</span></div>
-  <div class="cam-field">Sensore: <span>Sony IMX571 BSI</span></div>
-  <div class="cam-field">Pixel: <span>3.76 µm</span></div>
+  <div class="cam-field">Camera: <span id="n-camera-model">Moravian C3-26000M</span></div>
+  <div class="cam-field">Sensore: <span id="n-camera-sensor">Sony IMX571 BSI</span></div>
+  <div class="cam-field">Pixel: <span id="n-camera-pixel">3.76 µm</span></div>
   <div class="cam-field" id="n-badge-fwc">FWC: <span>52 800 e⁻</span></div>
-  <div class="cam-field">ADC: <span>16 bit</span></div>
+  <div class="cam-field">ADC: <span id="n-camera-adc">16 bit</span></div>
   <div class="cam-field">Focale: <span id="n-focal-shown">4000</span> mm</div>
 </div>
 
 <div class="panel" style="margin-bottom:16px;">
   <div class="panel-title">Parametri acquisizione</div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px 28px;">
+  <div class="snr-acq-grid">
 
     <!-- Gain selector -->
     <div style="grid-column:1/-1;">
-      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:6px;">Modalità gain — Moravian C3-26000M / IMX571</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="n-gain-btns">
-        <button class="gain-btn active" onclick="setGain(0)" data-g="0">0 dB · 1× · 0.80 e⁻/ADU</button>
-        <button class="gain-btn" onclick="setGain(1)" data-g="1">9.7 dB · 3× · 0.26 e⁻/ADU</button>
-        <button class="gain-btn" onclick="setGain(2)" data-g="2">9.7 dB HCG · 3× · 0.26 e⁻/ADU</button>
-        <button class="gain-btn" onclick="setGain(3)" data-g="3">36 dB · 63× · 0.012 e⁻/ADU</button>
-      </div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:6px;">Modalità gain — camera configurata</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="n-gain-btns"></div>
       <div style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap;" id="n-gain-info">
         <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">σ_r: <span id="n-rn-auto" style="color:var(--accent2);font-weight:700">3.51 e⁻</span></span>
         <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">FWC: <span id="n-fwc-auto" style="color:var(--accent2);font-weight:700">52 800 e⁻</span></span>
         <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">e⁻/ADU: <span id="n-eadu-auto" style="color:var(--accent2);font-weight:700">0.80</span></span>
-        <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">Offset: <span id="n-off-auto" style="color:var(--text2)">2749 ADU</span></span>
+        <span style="font-size:12px;font-family:var(--mono);color:var(--text2)">Gain #: <span id="n-off-auto" style="color:var(--text2)">0</span></span>
       </div>
     </div>
 
+    <div class="field">
+      <label for="n-filter">Filtro della misura</label>
+      <select id="n-filter" onchange="snrCalFilterChanged()">
+        <option value="B">B (Johnson)</option>
+        <option value="V">V (Johnson)</option>
+        <option value="R" selected>R (Cousins)</option>
+        <option value="I">I (Cousins)</option>
+        <option value="gp">g' (Sloan)</option>
+        <option value="rp">r' (Sloan)</option>
+      </select>
+      <div class="snr-field-note">Seleziona la tabella di calibrazione. Il segnale cambia solo quando applichi una stima.</div>
+    </div>
     <div>
-      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Segnale stella (e⁻/px/s)</div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Picco stella 1×1 (e⁻/px/s)</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <input type="range" min="1" max="500" value="80" step="1" id="n-sig" oninput="snrUpdate()" style="flex:1;min-width:0;">
-        <span class="pv" id="n-sig-v">80</span>
+        <input type="range" min="1" max="500" value="80" step="1" id="n-sig" oninput="snrCalManualSignal();snrUpdate()" style="flex:1;min-width:0;">
+        <input class="pv snr-number" type="number" id="n-sig-v" min="0" step="any" value="80" oninput="snrNumberChanged('n-sig', true)" onchange="snrNumberChanged('n-sig')" aria-label="Picco stella in elettroni per pixel al secondo">
       </div>
+      <div class="snr-field-note">Stella meno fondo nel pixel più luminoso; valore iniziale illustrativo.</div>
+      <div class="snr-field-note" id="n-sig-origin">Segnale impostato manualmente.</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Seeing / FWHM (arcsec)</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="range" min="0.5" max="6" value="2.75" step="0.05" id="n-seeing" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <input class="pv snr-number" type="number" id="n-seeing-v" min="0.5" max="6" step="0.05" value="2.75" oninput="snrNumberChanged('n-seeing', true)" onchange="snrNumberChanged('n-seeing')" aria-label="Seeing FWHM in secondi d'arco">
+      </div>
+      <div class="snr-field-note">Usa il FWHM della stessa ripresa da cui proviene il picco.</div>
     </div>
     <div>
       <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Fondo cielo (e⁻/px/s)</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="range" min="1" max="200" value="30" step="1" id="n-sky" oninput="snrUpdate()" style="flex:1;min-width:0;">
-        <span class="pv" id="n-sky-v">30</span>
+        <input class="pv snr-number" type="number" id="n-sky-v" min="1" max="200" step="1" value="30" oninput="snrNumberChanged('n-sky', true)" onchange="snrNumberChanged('n-sky')" aria-label="Valore numerico n-sky">
       </div>
     </div>
     <div>
       <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Dark current (e⁻/px/s)</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <input type="range" min="0" max="5" value="0.2" step="0.1" id="n-dc" oninput="snrUpdate()" style="flex:1;min-width:0;">
-        <span class="pv" id="n-dc-v">0.2</span>
+        <input type="range" min="0" max="5" value="0.2" step="0.0001" id="n-dc" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <input class="pv snr-number" type="number" id="n-dc-v" min="0" max="5" step="0.0001" value="0.2000" oninput="snrNumberChanged('n-dc', true)" onchange="snrNumberChanged('n-dc')" aria-label="Valore numerico n-dc">
       </div>
     </div>
     <div>
       <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Esposizione (s)</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <input type="range" min="30" max="600" value="120" step="10" id="n-exp" oninput="snrUpdate()" style="flex:1;min-width:0;">
-        <span class="pv" id="n-exp-v">120</span>
+        <input type="range" min="30" max="600" value="120" step="1" id="n-exp" oninput="snrUpdate()" style="flex:1;min-width:0;">
+        <input class="pv snr-number" type="number" id="n-exp-v" min="30" max="600" step="1" value="120" oninput="snrNumberChanged('n-exp', true)" onchange="snrNumberChanged('n-exp')" aria-label="Valore numerico n-exp">
       </div>
     </div>
     <div>
-      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Stella in acquisiz. (ADU)</div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">Stella sopra fondo (ADU) — calcolato</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <input type="range" min="1000" max="51000" value="25000" step="500" id="n-staradu" oninput="snrUpdate()" style="flex:1;min-width:0;">
-        <span class="pv" id="n-staradu-v">25000</span>
+        <input class="pv snr-number" type="number" id="n-staradu-v" value="12000" readonly aria-label="Stella sopra fondo in ADU calcolati">
       </div>
+      <div class="snr-field-note">Picco stella × esposizione ÷ e⁻/ADU del gain. Valore stimato, senza fondo cielo e bias.</div>
     </div>
     <div>
       <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:4px;">σ_r lettura (e⁻) — automatico da gain</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="range" min="0.5" max="8" value="3.51" step="0.01" id="n-rn" oninput="snrUpdate()" style="flex:1;min-width:0;">
-        <span class="pv" id="n-rn-v">3.51</span>
+        <input class="pv snr-number" type="number" id="n-rn-v" min="0.5" max="8" step="0.01" value="3.51" oninput="snrNumberChanged('n-rn', true)" onchange="snrNumberChanged('n-rn')" aria-label="Valore numerico n-rn">
       </div>
       <div style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-top:2px;">Puoi sovrascrivere manualmente</div>
     </div>
 
   </div>
+  <div class="snr-info" id="n-acq-warning" style="display:none;margin-top:12px;"></div>
+</div>
+
+<div class="panel snr-cal-panel">
+  <div class="panel-title">Calibrazione fotometrica per filtro</div>
+  <div class="snr-info">Filtro <strong id="n-cal-filter">R (Cousins)</strong>. Ogni riga descrive una stella su immagine calibrata, non satura, acquisita in 1×1 vicino ad airmass 1: magnitudine di catalogo, <strong>picco stellare sopra fondo</strong> in e⁻/px/s e FWHM della stessa immagine. Usa la stessa configurazione ottica. Il fit corregge il picco per il seeing con la PSF gaussiana usata nei grafici.</div>
+  <div class="snr-field-note">Profilo: <strong id="n-cal-setup">Configurazione iniziale</strong>. Le misure restano associate alla configurazione del sito, dell'ottica e della camera.</div>
+  <div class="snr-cal-table-wrap">
+    <table class="snr-cal-table">
+      <thead><tr><th>Mag. catalogo</th><th>Picco 1×1 (e⁻/px/s)</th><th>FWHM (arcsec)</th><th>Scarto fit</th><th></th></tr></thead>
+      <tbody id="n-cal-rows"></tbody>
+    </table>
+  </div>
+  <div class="snr-cal-actions">
+    <button type="button" class="snr-cal-btn" onclick="snrCalAdd()">+ Aggiungi misura</button>
+    <button type="button" class="snr-cal-btn" onclick="snrCalExport()">Esporta JSON</button>
+    <button type="button" class="snr-cal-btn" onclick="document.getElementById('n-cal-import-file').click()">Importa JSON</button>
+    <input id="n-cal-import-file" type="file" accept=".json,application/json" hidden onchange="snrCalImport(event)">
+    <span class="snr-field-note" id="n-cal-storage">Salvataggio automatico in questo browser</span>
+  </div>
+  <div class="snr-field-note" id="n-cal-import-status" role="status"></div>
+  <div class="snr-info" id="n-cal-status" role="status"></div>
+  <div class="snr-cal-target">
+    <div class="field"><label for="n-cal-target">Magnitudine da stimare nel filtro selezionato</label>
+      <input type="number" id="n-cal-target" step="0.01" min="-40" max="40" placeholder="es. 14,20" oninput="snrCalRefresh()">
+    </div>
+    <button type="button" class="snr-cal-btn snr-cal-apply" id="n-cal-apply" onclick="snrCalApply()" disabled>Usa nel calcolo SNR</button>
+  </div>
+  <div class="snr-info" id="n-cal-result" role="status">La stima sarà disponibile dopo almeno una misura completa.</div>
 </div>
 
 <div class="snr-tabs">
@@ -88,6 +134,7 @@
 
 <div id="snr-tab-snr">
   <div class="cards-grid" id="n-snr-cards"></div>
+  <div class="snr-field-note" style="font-size:11px;margin-bottom:7px;">SNR del pixel centrale risultante (PSF gaussiana). Binning in camera secondo Impostazioni; gli altri via INDIGO o elaborazione. L'SNR della stella sull'apertura fissa è nella card sopra.</div>
   <div class="chart-wrap"><canvas id="n-snr-chart" style="height:260px;width:100%"></canvas></div>
   <div class="snr-info" id="n-regime-info"></div>
 </div>
@@ -97,7 +144,7 @@
   <div class="snr-info" id="n-samp-info"></div>
 </div>
 <div id="snr-tab-sat" style="display:none">
-  <div class="snr-info">Stella acquisita a <span id="n-sat-ref" class="hi">—</span> ADU in 1×1. FWC fisico: <span id="n-sat-fwc" class="hi">52 800</span> e⁻.</div>
+  <div class="snr-info">Picco stella sopra fondo: <span id="n-sat-ref" class="hi">—</span> ADU/px in 1×1 (valore stimato). FWC fisico: <span id="n-sat-fwc" class="hi">52 800</span> e⁻.</div>
   <div id="n-sat-bars"></div>
   <div class="chart-wrap" style="margin-top:10px"><canvas id="n-sat-chart" style="height:260px;width:100%"></canvas></div>
   <div class="snr-info" id="n-sat-info"></div>

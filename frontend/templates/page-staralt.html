@@ -6,14 +6,9 @@
 <div>
   <div class="panel">
     <div class="panel-title">Osservatorio</div>
-    <div class="row2">
-      <div class="field"><label>Latitudine °N</label><input type="number" id="s-lat" value="42.27" step="0.001"></div>
-      <div class="field"><label>Longitudine °E</label><input type="number" id="s-lon" value="12.80" step="0.001"></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>Altitudine m</label><input type="number" id="s-elev" value="460"></div>
-      <div class="field"><label>Fuso orario h</label><input type="number" id="s-tz" value="2" step="1" min="-12" max="14"></div>
-    </div>
+    <div class="snr-info" id="s-site-summary"></div>
+    <button type="button" class="snr-cal-btn" onclick="showPage('settings')">Modifica in Impostazioni</button>
+    <div class="field" style="margin-top:12px"><label for="s-tz">Fuso orario della notte (UTC±h)</label><input type="number" id="s-tz" value="2" step="0.5" min="-12" max="14"><div class="field-hint">Calcolato dal fuso IANA nelle Impostazioni; modificabile per questa notte.</div></div>
     <div class="field"><label>Alt. minima osservazione °</label><input type="number" id="s-minalt" value="20" min="0" max="60"></div>
   </div>
   <div class="panel" style="margin-top:12px">
@@ -64,6 +59,8 @@
         <span class="legend-item"><span class="legend-dot" style="background:#4a9eff"></span>oggetto</span>
         <span class="legend-item"><span class="legend-dot" style="background:#e8d5a0;opacity:0.8"></span>Luna</span>
         <span class="legend-item"><span class="legend-dot" style="background:var(--gold);height:1px;border-top:1px dashed var(--gold)"></span>transito</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f0a060;height:1px;border-top:1px dashed #f0a060"></span>tramonto</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#7ec8ff;height:1px;border-top:1px dashed #7ec8ff"></span>alba</span>
         <span class="legend-item"><span class="legend-dot" style="background:rgba(80,224,144,0.4);width:14px;height:10px;border-radius:2px"></span>finestra osserv.</span>
         <span class="legend-item"><span class="legend-dot" style="background:rgba(232,213,160,0.22);width:14px;height:10px;border-radius:2px"></span>Luna sopra oriz.</span>
       </div>
