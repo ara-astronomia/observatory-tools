@@ -50,9 +50,9 @@ observatory-tools/
 uv sync
 
 # Avvia con hot-reload
-uv run uvicorn backend.main:app --reload --port 8000
-# → http://localhost:8000
-# → http://localhost:8000/docs  (Swagger)
+uv run uvicorn backend.main:app --reload --port 8001
+# → http://localhost:8001
+# → http://localhost:8001/docs  (Swagger)
 
 # Esegui i test
 uv run pytest -v
@@ -113,15 +113,19 @@ La variabile d'ambiente `DB_PATH` sovrascrive il path del DB (default: `backend/
 
 ## Camera di riferimento
 
-**Moravian C3-26000M** — Sony IMX571 BSI  
-Pixel: 3.76 µm · FWC: 51 000 e⁻ (LCG) · ADC: 16 bit
+La scheda **Impostazioni** concentra sito, ottica e camera per StarAlt, ETC, SNR Analyzer e Sky Monitor. La focale effettiva può essere modificata quando si installa un riduttore. Le impostazioni sono salvate nel browser e si possono esportare/importare come JSON. Le calibrazioni SNR e le misure Sky Monitor restano associate alla configurazione con cui sono state raccolte.
+
+Valori iniziali della camera: **Moravian C3-26000M** — Sony IMX571 BSI.
+Pixel: 3.76 µm · FWC: 52 800 e⁻ (0 dB) · ADC: 16 bit
 
 ## Telescopio di riferimento
 
-**369 mm f/6.8** → focale 2509 mm → plate scale 0.309 arcsec/px (1×1)  
-Aggiornabile dai campi "Diametro" e "Rapporto focale" nell'ETC.
+**500 mm f/8** → focale 4000 mm → scala 0.194 arcsec/px (1×1).
+Diametro e focale effettiva si aggiornano nella scheda Impostazioni.
 
 ## Zero-point di riferimento (filtro R)
 
-ZP = 20.4 mag @ 369 mm — calibrato su M67  
-Il ZP scala automaticamente con il diametro: `ZP(D) = ZP_ref + 5·log10(D/369)`
+Il valore predefinito dell'ETC è provvisorio: ZP_ref = 20.8 mag a 369 mm.
+Scala con il diametro secondo la relazione ZP(D) = ZP_ref + 5·log10(D/369).
+Per risultati quantitativi va sostituito con uno zero point misurato sulla
+configurazione reale; il valore calibrato inserito nell'ETC è usato direttamente.

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Observatory Tools — Frasso Sabino</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="/static/css/main.css?v=20261015s">
 </head>
 <body>
 
@@ -26,6 +26,9 @@
       <button class="tab-btn" onclick="showPage('skymonitor')" id="btn-skymonitor">
         <span class="tb-icon">◌</span> Sky Monitor
       </button>
+      <button class="tab-btn" onclick="showPage('settings')" id="btn-settings">
+        <span class="tb-icon">⚙</span> Impostazioni
+      </button>
       <button class="tab-btn" onclick="showPage('help')" id="btn-help">
         <span class="tb-icon">?</span> Help
       </button>
@@ -38,19 +41,22 @@
 <div id="page-snr"     class="page"></div>
 <div id="page-etc"     class="page"></div>
 <div id="page-skymonitor" class="page"></div>
+<div id="page-settings" class="page"></div>
 <div id="page-help" class="page"></div>
 
 <!-- ── VENDOR ───────────────────────────────────────────────────── -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 
 <!-- ── APP MODULES ──────────────────────────────────────────────── -->
-<script src="/static/js/astro-utils.js"></script>
-<script src="/static/js/catalog.js"></script>
-<script src="/static/js/staralt.js"></script>
-<script src="/static/js/snr.js"></script>
-<script src="/static/js/etc.js"></script>
-<script src="/static/js/skymonitor.js"></script>
-<script src="/static/js/app.js"></script>
+<script src="/static/js/settings.js?v=20261015s"></script>
+<script src="/static/js/astro-utils.js?v=20261015c"></script>
+<script src="/static/js/catalog.js?v=20261015b"></script>
+<script src="/static/js/staralt.js?v=20261015c"></script>
+<script src="/static/js/snr.js?v=20261015s"></script>
+<script src="/static/js/snr-calibration.js?v=20261015s"></script>
+<script src="/static/js/etc.js?v=20261015s"></script>
+<script src="/static/js/skymonitor.js?v=20261015s"></script>
+<script src="/static/js/app.js?v=20261015s"></script>
 
 </body>
 </html>

@@ -23,17 +23,44 @@ function selectObj(name,ra,dec,full){
   r.innerHTML=`<div class="obj-name">${name}</div><div class="obj-coords">${full} &nbsp;·&nbsp; RA ${parseFloat(ra).toFixed(4)}h &nbsp; Dec ${parseFloat(dec)>=0?'+':''}${parseFloat(dec).toFixed(4)}°</div>`;
 }
 let sChart=null;
-function sGetDate(){const v=document.getElementById('s-obsdate').value;if(v)return new Date(v+'T20:00:00');const n=new Date();n.setHours(20,0,0,0);return n;}
-function sComputeTonight(){const d=sGetDate(),lat=+document.getElementById('s-lat').value,lon=+document.getElementById('s-lon').value,tz=+document.getElementById('s-tz').value;const tw=findTwilight(d,lat,lon,tz);sCompute(tw.sunset-1,tw.sunrise+1);}
+let sTzManual=false;
+function sEveningOffset(dateStr,timeZone){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const eveningUtc=new Date(Date.UTC(y,m-1,d,18));
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+    timeZone,year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+  }).formatToParts(eveningUtc).map(p=>[p.type,p.value]));
+  const localStamp=Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day),
+    Number(parts.hour),Number(parts.minute));
+  return(localStamp-eveningUtc.getTime())/3600000;
+}
+function initStarAltTimezone(force=false){
+  const dateEl=document.getElementById('s-obsdate'),tzEl=document.getElementById('s-tz');
+  if(!dateEl||!tzEl)return;
+  if(force)sTzManual=false;
+  const apply=()=>{
+    if(!sTzManual&&dateEl.value)
+      tzEl.value=sEveningOffset(dateEl.value,settingsGet().site.timeZone);
+  };
+  if(!dateEl.dataset.timezoneBound){
+    tzEl.addEventListener('input',()=>{sTzManual=true;});
+    dateEl.addEventListener('change',apply);
+    dateEl.dataset.timezoneBound='1';
+  }
+  apply();
+}
+function sGetDate(){const v=document.getElementById('s-obsdate').value;if(v){const[y,m,d]=v.split('-').map(Number);return new Date(y,m-1,d,12);}const n=new Date();n.setHours(12,0,0,0);return n;}
+function sComputeTonight(){sCompute();}
 function sCompute(startH,endH){
   const ra_h=parseRA(document.getElementById('s-ra').value),dec_d=parseDec(document.getElementById('s-dec').value);
   if(isNaN(ra_h)||isNaN(dec_d)){alert('Inserisci RA e Dec validi');return;}
-  const lat=+document.getElementById('s-lat').value,lon=+document.getElementById('s-lon').value;
+  const{lat,lon}=settingsGet().site;
   const tz=+document.getElementById('s-tz').value,minAlt=+document.getElementById('s-minalt').value||20;
   const objname=document.getElementById('s-objname').value||'Oggetto';
   const date=sGetDate(),tw=findTwilight(date,lat,lon,tz);
-  const h0=startH!==undefined?startH:tw.sunset-1,h1=endH!==undefined?endH:tw.sunrise+1;
-  const base=new Date(date);base.setHours(12,0,0,0);const jdNoon=jd(base)-tz/24;
+  const h0=startH!==undefined?startH:tw.sunset,h1=endH!==undefined?endH:tw.sunrise;
+  const jdNoon=jdLocalNoon(date,tz);
   const N=240,times=[],alts=[],moonAlts=[],moonDists=[],sunAlts=[],labels=[];
   for(let i=0;i<=N;i++){
     const h=h0+(h1-h0)*i/N,J=jdNoon+(h-12)/24;
@@ -41,41 +68,56 @@ function sCompute(startH,endH){
     const mp=moonPos(J);moonAlts.push(+altaz(mp.ra_h,mp.dec_d,lat,lon,J).alt.toFixed(2));
     moonDists.push(+angDist(ra_h,dec_d,mp.ra_h,mp.dec_d).toFixed(1));
     sunAlts.push(+sunAlt(J,lat,lon).toFixed(2));times.push(h);
-    const hh=Math.floor(((h%24)+24)%24),mm=Math.round(((h%1)*60+60)%60);
-    labels.push(`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`);
+    labels.push(fmtH(h));
   }
   let transitH=null,maxAlt=-90;
   for(let i=0;i<=N;i++)if(alts[i]>maxAlt){maxAlt=alts[i];transitH=times[i];}
   let obsStart=null,obsEnd=null;
   for(let i=0;i<=N;i++)if(alts[i]>=minAlt&&sunAlts[i]<=-18){if(obsStart===null)obsStart=times[i];obsEnd=times[i];}
-  const midJ=jdNoon+((tw.sunset+tw.sunrise)/2-12)/24,mi=moonIllum(midJ);
+  const midJ=jdNoon+((tw.dusk+tw.dawn)/2-12)/24,mi=moonIllum(midJ);
   let minDist=999;for(let i=0;i<=N;i++)if(sunAlts[i]<=-18&&moonDists[i]<minDist)minDist=moonDists[i];
   const nowJ=jd(new Date()),{alt:nowAlt,az:nowAz}=altaz(ra_h,dec_d,lat,lon,nowJ);
   staraltLastAlt=nowAlt;
-  function fmtH(h){const hh=Math.floor(((h%24)+24)%24),mm=Math.round(((h%1)*60+60)%60);return`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;}
+  function fmtH(h){const minutes=((Math.round(h*60)%1440)+1440)%1440;return`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`;}
   const mxC=maxAlt>=60?'alt-now':maxAlt>=30?'alt-mid':'alt-low',nwC=nowAlt>=minAlt?'alt-now':nowAlt>=0?'alt-mid':'alt-low';
   document.getElementById('s-infoGrid').innerHTML=`
     <div class="info-card"><div class="ic-label">Alt. ora</div><div class="ic-val ${nwC}">${nowAlt.toFixed(1)}°</div><div class="ic-sub">Az ${nowAz.toFixed(1)}°</div></div>
     <div class="info-card"><div class="ic-label">Alt. massima</div><div class="ic-val ${mxC}">${maxAlt.toFixed(1)}°</div><div class="ic-sub">Transito ${fmtH(transitH)}</div></div>
-    <div class="info-card"><div class="ic-label">Notte astron.</div><div class="ic-val" style="font-size:14px">${fmtH(tw.sunset)}</div><div class="ic-sub">→ ${fmtH(tw.sunrise)}</div></div>`;
+    <div class="info-card"><div class="ic-label">Notte astron.</div><div class="ic-val" style="font-size:14px">${fmtH(tw.dusk)}</div><div class="ic-sub">→ ${fmtH(tw.dawn)}</div></div>`;
   const iC=mi.illum<25?'moon-ok':mi.illum<60?'moon-warn':'moon-bad',dC=minDist>30?'moon-ok':minDist>15?'moon-warn':'moon-bad';
   document.getElementById('s-moonGrid').innerHTML=`
     <div class="info-card moon-card"><div class="ic-label">Fase lunare</div><div class="ic-val" style="font-size:14px">${phaseIcon(mi.phase)} ${phaseName(mi.phase)}</div><div class="ic-sub">a metà notte</div></div>
     <div class="info-card moon-card"><div class="ic-label">Illuminazione</div><div class="ic-val ${iC}">${mi.illum}%</div><div class="ic-sub">${mi.illum<25?'favorevole':mi.illum<60?'accettabile':'critica'}</div></div>
     <div class="info-card moon-card"><div class="ic-label">Dist. min. notte</div><div class="ic-val ${dC}">${minDist<999?minDist.toFixed(1)+'°':'—'}</div><div class="ic-sub">${minDist>30?'sicura':minDist>15?'borderline':'troppo vicina'}</div></div>
     <div class="info-card moon-card"><div class="ic-label">Elong. ☀-☽</div><div class="ic-val" style="font-size:16px">${mi.elong}°</div><div class="ic-sub">Sole — Luna</div></div>`;
-  document.getElementById('s-chartTitle').textContent=`ALTITUDINE — ${objname.toUpperCase()}  ·  ${date.toLocaleDateString('it-IT')}`;
+  document.getElementById('s-chartTitle').textContent=`ALTITUDINE — ${objname.toUpperCase()} · ${date.toLocaleDateString('it-IT')} · ora del fuso impostato (UTC${tz>=0?'+':''}${tz})`;
   if(sChart)sChart.destroy();
   const nightPlugin={id:'ns',beforeDraw(chart){
     const{ctx:c,chartArea:{left,right,top,bottom},scales}=chart;
     function xOf(h){return scales.x.getPixelForValue(Math.max(0,Math.min(N,(h-h0)/(h1-h0)*N)));}
     c.save();
-    c.fillStyle='rgba(15,30,60,0.72)';c.fillRect(left,top,xOf(tw.sunset)-left,bottom-top);c.fillRect(xOf(tw.sunrise),top,right-xOf(tw.sunrise),bottom-top);
+    c.fillStyle='rgba(15,30,60,0.72)';c.fillRect(left,top,xOf(tw.dusk)-left,bottom-top);c.fillRect(xOf(tw.dawn),top,right-xOf(tw.dawn),bottom-top);
     let mUp=false,mS=null;for(let i=0;i<=N;i++){const h=h0+(h1-h0)*i/N,up=moonAlts[i]>0&&sunAlts[i]<=-6;if(up&&!mUp){mS=h;mUp=true;}if(!up&&mUp){c.fillStyle='rgba(232,213,160,0.07)';c.fillRect(xOf(mS),top,xOf(h)-xOf(mS),bottom-top);mUp=false;}}
     if(mUp){c.fillStyle='rgba(232,213,160,0.07)';c.fillRect(xOf(mS),top,xOf(h1)-xOf(mS),bottom-top);}
     if(obsStart!==null){c.fillStyle='rgba(80,224,144,0.07)';c.fillRect(xOf(obsStart),top,xOf(obsEnd)-xOf(obsStart),bottom-top);}
     c.strokeStyle='rgba(240,192,96,0.22)';c.setLineDash([4,4]);c.lineWidth=1;const yM=scales.y.getPixelForValue(minAlt);c.beginPath();c.moveTo(left,yM);c.lineTo(right,yM);c.stroke();
     if(transitH!==null){c.strokeStyle='rgba(240,192,96,0.55)';c.setLineDash([6,3]);c.lineWidth=1.5;const xT=xOf(transitH);c.beginPath();c.moveTo(xT,top);c.lineTo(xT,bottom);c.stroke();}
+    c.restore();
+  },afterDraw(chart){
+    const{ctx:c,chartArea:{left,right,top,bottom}}=chart;
+    c.save();
+    c.font="10px 'Space Mono', monospace";
+    c.lineWidth=2;
+    c.setLineDash([4,3]);
+    for(const marker of [
+      {x:left+1,color:'#f0a060',label:`Tramonto ${fmtH(tw.sunset)}`,align:'left',textX:left+7},
+      {x:right-1,color:'#7ec8ff',label:`Alba ${fmtH(tw.sunrise)}`,align:'right',textX:right-7}
+    ]){
+      c.strokeStyle=marker.color;
+      c.beginPath();c.moveTo(marker.x,top);c.lineTo(marker.x,bottom);c.stroke();
+      c.fillStyle=marker.color;c.textAlign=marker.align;
+      c.fillText(marker.label,marker.textX,top+14);
+    }
     c.restore();
   }};
   // Plugin crosshair verticale

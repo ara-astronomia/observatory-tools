@@ -2,7 +2,7 @@
 db/database.py — Configurazione SQLAlchemy + SQLite
 """
 
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Enum
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Enum, inspect, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
@@ -42,6 +42,7 @@ class SkyMeasurement(Base):
     __tablename__ = "sky_measurements"
 
     id           = Column(Integer, primary_key=True, index=True)
+    setup_id     = Column(String, nullable=False, default="legacy", index=True)
     filter_name  = Column(String, nullable=False)
     sky_e        = Column(Float, nullable=False)
     airmass_obj  = Column(Float, nullable=False)
@@ -69,3 +70,13 @@ def get_db():
 def init_db():
     """Crea le tabelle se non esistono."""
     Base.metadata.create_all(bind=engine)
+    # Conserva le misure già presenti, attribuendole alla configurazione iniziale.
+    columns = {c["name"] for c in inspect(engine).get_columns("sky_measurements")}
+    if "setup_id" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE sky_measurements ADD COLUMN setup_id VARCHAR "
+                "NOT NULL DEFAULT 'legacy'"
+            ))
+    with engine.begin() as conn:
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sky_measurements_setup_id ON sky_measurements (setup_id)"))

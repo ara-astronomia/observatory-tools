@@ -1,32 +1,32 @@
 // ═══════════════════════════════════════════════════════════════
 // etc.js — Tab ETC: Exposure Time Calculator
-// Gain presets IMX571, ZP fotometrico, airmass, apertura PSF
+// Gain da Impostazioni, ZP fotometrico, airmass, apertura PSF
 // ═══════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════
 
 // Stato condiviso StarAlt → ETC
 let staraltLastAlt=null;
-// {label, gainNum, ePerADU, rn, fwc}
-// Aggiorna badge focale e ricalcola quando cambiano diametro/f-ratio
-function etcOpticsChanged(){
-  const d=+document.getElementById('e-diam').value||369;
-  const f=+document.getElementById('e-fratio').value||6.8;
-  const focal=Math.round(d*f);
-  const es=document.getElementById('e-focal-shown');
-  if(es) es.textContent=focal;
-  const ns=document.getElementById('n-focal-shown');
-  if(ns) ns.textContent=focal;
-  etcCompute();
-}
-
-const GAIN_PRESETS=[
-  {label:'G=0 · LCG',   gainNum:0,    ePerADU:0.80,  rn:3.51, fwc:52800},
-  {label:'G=2749 · HCG',gainNum:2749, ePerADU:0.26,  rn:3.15, fwc:17000},
-  {label:'G=2750 · HCG LN',gainNum:2750,ePerADU:0.26,rn:1.46, fwc:17000},
-  {label:'G=4030 · HDR',gainNum:4030, ePerADU:0.012, rn:1.28, fwc:800},
-];
 let etcGainIdx=0;
+function etcRenderGainButtons(){
+  const modes=settingsGet().camera.gainModes;
+  etcGainIdx=Math.min(etcGainIdx,modes.length-1);
+  document.getElementById('e-gain-btns').innerHTML=modes.map((g,i)=>
+    '<button class="gain-btn'+(i===etcGainIdx?' active':'')+'" onclick="etcSetGain('+i+')">'+settingsEscape(g.label)+'</button>'
+  ).join('');
+  const g=modes[etcGainIdx];
+  document.getElementById('e-rn-auto').textContent=g.rn.toFixed(2);
+  document.getElementById('e-fwc-auto').textContent=g.fwc.toLocaleString('it-IT');
+  document.getElementById('e-eadu-auto').textContent=g.ePerADU;
+  document.getElementById('e-gain-num').textContent=g.gainNum;
+}
+function etcRenderBinningOptions(){
+  const select=document.getElementById('e-bin');
+  const old=Number(select.value)||Math.min(2,settingsGet().camera.nativeBin);
+  select.innerHTML='<option value="1">1×1</option>'+
+    (settingsGet().camera.nativeBin===2?'<option value="2">2×2 Average</option>':'');
+  select.value=old<=settingsGet().camera.nativeBin?String(old):'1';
+}
 
 // Parametri filtro: {k: estinzione mag/airmass, zpTheo: ZP teorico mag}
 // La QE è già inglobata nel ZP calibrato — non entra nel calcolo.
@@ -48,7 +48,7 @@ const FILTER_PARAMS={
 
 function etcSetGain(idx){
   etcGainIdx=idx;
-  const g=GAIN_PRESETS[idx];
+  const g=settingsGet().camera.gainModes[idx];
   document.getElementById('e-rn-auto').textContent=g.rn.toFixed(2);
   document.getElementById('e-fwc-auto').textContent=g.fwc.toLocaleString();
   document.getElementById('e-eadu-auto').textContent=g.ePerADU;
@@ -88,7 +88,31 @@ function etcImportFromStaralt(){
 // lascia il valore corrente invariato (non sovrascrive mai misure manuali
 // se l'utente ha disabilitato l'auto-fill).
 
-let skyAutoFillEnabled = true;   // toggle dall'utente
+let skyAutoFillEnabled = true;
+let etcSkyAutoSetupKey = null;
+let etcSkyManualValue = 30;
+
+function etcSkyManualChanged(){
+  etcSkyManualValue=Number(document.getElementById('e-sky').value);
+  etcSkyAutoSetupKey=null;
+  const source=document.getElementById('e-sky-source');
+  source.textContent='inserito manualmente';
+  source.style.color='var(--text2)';
+  etcCompute();
+}
+function etcSkyAutoToggle(checked){
+  skyAutoFillEnabled=checked;
+  if(!checked){
+    if(etcSkyAutoSetupKey){
+      document.getElementById('e-sky').value=etcSkyManualValue;
+      etcSkyAutoSetupKey=null;
+    }
+    const source=document.getElementById('e-sky-source');
+    source.textContent='inserito manualmente';
+    source.style.color='var(--text2)';
+    etcCompute();
+  }else etcSkyAutoFill().then(()=>etcCompute());
+}
 
 async function etcSkyAutoFill() {
   if (!skyAutoFillEnabled) return;
@@ -103,13 +127,28 @@ async function etcSkyAutoFill() {
 
   if (!filter || isNaN(airmass)) return;
 
+  const requestedKey=settingsSetupKey();
   const result = await skyPredict(filter, airmass, moonIllum, moonDist);
-  if (!result || result.sky_e === null) return;
+  if(requestedKey!==settingsSetupKey())return;
+  const currentKey=requestedKey;
+  if (!result || result.sky_e === null){
+    if(etcSkyAutoSetupKey&&etcSkyAutoSetupKey!==currentKey){
+      document.getElementById('e-sky').value=etcSkyManualValue;
+      etcSkyAutoSetupKey=null;
+      const source=document.getElementById('e-sky-source');
+      source.textContent='Nessuna previsione DB per la nuova configurazione; valore manuale';
+      source.style.color='var(--gold)';
+    }
+    return;
+  }
 
   const skyEl = document.getElementById('e-sky');
   if (!skyEl) return;
 
+  if(!etcSkyAutoSetupKey)
+    etcSkyManualValue=Number(skyEl.value);
   skyEl.value = result.sky_e.toFixed(3);
+  etcSkyAutoSetupKey=currentKey;
 
   // Mostra indicatore che il valore viene dal DB
   const indEl = document.getElementById('e-sky-source');
@@ -120,7 +159,7 @@ async function etcSkyAutoFill() {
 }
 
 function etcCompute(){
-  const g=GAIN_PRESETS[etcGainIdx];
+  const g=settingsGet().camera.gainModes[etcGainIdx];
   const rn=g.rn;
   const fwc=g.fwc;
   const dc=+document.getElementById('e-dc').value;
@@ -137,9 +176,9 @@ function etcCompute(){
   const filtKey=document.getElementById('e-filter').value;
   const fp=FILTER_PARAMS[filtKey];
 
-  // plate scale: 206265 * pixel_mm * bin / focal_mm (focale da diametro × f/)
+  // plate scale: 206265 * pixel_mm * bin / focale effettiva
   const focal=getFocal();
-  const plateScale=206265*0.00376*bin/focal;
+  const plateScale=settingsPlateScale(bin);
 
   // FWHM in pixel e apertura fotometrica
   const fwhmPx=seeing/plateScale;
@@ -157,12 +196,12 @@ function etcCompute(){
   document.getElementById('e-k-shown').textContent=k.toFixed(2);
   document.getElementById('e-ext-shown').textContent='+'+dMag.toFixed(3)+' mag';
 
-  // ZP base (calibrato su dRef=369mm). Scala con il diametro corrente:
+  // ZP teorico di riferimento (dRef=369mm). Scala con il diametro corrente:
   // ZP(D) = ZP_ref + 5*log10(D/D_ref)  [relazione area telescopio]
   const dRef=369; // diametro di riferimento della calibrazione ZP (mm)
-  const diam=+document.getElementById('e-diam').value||369;
+  const diam=settingsGet().telescope.diameterMm;
   const zpBase=zpOverride!==0?zpOverride:fp.zpTheo;
-  const zpUsed=zpBase + 5*Math.log10(diam/dRef);
+  const zpUsed=zpOverride!==0?zpOverride:zpBase + 5*Math.log10(diam/dRef);
   document.getElementById('e-zp-shown').textContent=
     zpUsed.toFixed(3)+' (base '+zpBase.toFixed(2)+(Math.abs(diam-dRef)>0.5?' ΔD='+(zpUsed-zpBase>0?'+':'')+(zpUsed-zpBase).toFixed(3):'')+')';
 
@@ -173,7 +212,7 @@ function etcCompute(){
   // Rumore nell'apertura
   const SKYtot=sky*bin*bin*npix;
   const DCtot=dc*bin*bin*npix;
-  const RN2tot=rn*rn*npix;
+  const RN2tot=rn*rn*bin*bin*npix; // Average: bin² letture native per pixel risultante
 
   if(S<=0){
     document.getElementById('etc-no-result').style.display='block';
@@ -241,7 +280,7 @@ function etcCompute(){
   document.getElementById('e-res-snr-nsub').textContent=Math.round(snrConNVerifica);
   document.getElementById('e-res-nsub-detail').innerHTML=
     `${nSub} sub × ${Math.round(tSub)}s<br>${fmtT(nSub*tSub)} totali`+
-    (snrConNVerifica>=snrStack
+    (snrConNVerifica>=snrStack-1e-8
       ?`<br><span style="color:var(--green)">✓ target raggiunto</span>`
       :`<br><span style="color:var(--gold)">mancano ${nNeeded-nSub} sub</span>`);
 
@@ -253,7 +292,7 @@ function etcCompute(){
 
   document.getElementById('e-breakdown').innerHTML=`
     <div class="etc-row"><span class="etc-row-label">Filtro</span><span class="etc-row-val">${fp.label}</span></div>
-    <div class="etc-row"><span class="etc-row-label">Gain</span><span class="etc-row-val">${g.label} · σ_r=${g.rn} e⁻ · FWC=${g.fwc.toLocaleString()} e⁻</span></div>
+    <div class="etc-row"><span class="etc-row-label">Gain</span><span class="etc-row-val">${settingsEscape(g.label)} · σ_r=${g.rn} e⁻ · FWC=${g.fwc.toLocaleString()} e⁻</span></div>
     <div class="etc-row"><span class="etc-row-label">mag → mag_eff</span><span class="etc-row-val">${mag.toFixed(2)} + ${dMag.toFixed(3)} (k·X) = ${magEff.toFixed(3)}</span></div>
     <div class="etc-row"><span class="etc-row-label">Flusso stella S</span><span class="etc-row-val">${S.toFixed(1)} e⁻/s · ZP=${zpUsed.toFixed(3)} (${diam}mm, ref ${dRef}mm)</span></div>
     <div class="etc-row"><span class="etc-row-label">Apertura</span><span class="etc-row-val">r=${apRadPx.toFixed(1)} px · N=${npix} px · FWHM=${fwhmPx.toFixed(1)} px</span></div>
@@ -268,8 +307,8 @@ function etcCompute(){
     `<div class="stack-title">Riepilogo sessione</div>`+
     `SNR target finale: <strong>${snrStack}</strong> &nbsp;·&nbsp; `+
     `Sub necessari: <strong>${nNeeded}</strong> × ${Math.round(tSub)}s = <strong>${fmtT(tTotalNeeded)}</strong><br>`+
-    (zpOverride===0?'<span style="font-size:10px;color:var(--text2)">ZP teorico non calibrato — risultati indicativi. Calibra con stelle Landolt.</span>':
-    '<span style="font-size:10px;color:var(--green)">✓ ZP calibrato da osservazione reale.</span>');
+    (zpOverride===0?'<span style="font-size:10px;color:var(--text2)">ZP teorico non calibrato — risultati indicativi; con altra camera serve una nuova calibrazione.</span>':
+    '<span style="font-size:10px;color:var(--green)">✓ ZP inserito per la configurazione corrente.</span>');
 
   document.getElementById('etc-no-result').style.display='none';
   document.getElementById('etc-result').style.display='block';

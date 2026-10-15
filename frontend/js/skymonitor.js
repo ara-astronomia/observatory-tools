@@ -17,7 +17,8 @@ const FILTER_COLORS = {
 
 async function skyFetchAll() {
   try {
-    const r = await fetch('/api/skydb/?limit=500');
+    const p=new URLSearchParams({limit:'500',setup_id:settingsSetupKey()});
+    const r = await fetch('/api/skydb/?'+p);
     if (!r.ok) throw new Error(r.status);
     skyData = await r.json();
     return true;
@@ -32,7 +33,7 @@ async function skyPost(payload) {
   const r = await fetch('/api/skydb/', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
+    body: JSON.stringify({...payload,setup_id:settingsSetupKey()})
   });
   if (!r.ok) {
     const err = await r.json().catch(()=>({}));
@@ -45,6 +46,7 @@ async function skyPredict(filter, airmass, moonIllum, moonDist) {
   try {
     const p = new URLSearchParams({
       filter_name: filter,
+      setup_id: settingsSetupKey(),
       airmass: airmass.toFixed(3),
       moon_illum: moonIllum.toFixed(1),
       moon_dist: moonDist.toFixed(1)
@@ -139,6 +141,7 @@ function skyPushToETC(filter, sky_e) {
   const es = document.getElementById('e-sky');
   if (es && ef === filter) {
     es.value = sky_e.toFixed(3);
+    if (typeof etcSkyManualChanged === 'function') etcSkyManualChanged();
     if (typeof etcCompute === 'function') etcCompute();
   }
 }
@@ -359,4 +362,14 @@ async function initSkyMonitor() {
   document.getElementById('sky-table-filter')?.addEventListener('change', skyRenderTable);
   document.getElementById('sky-chart-filter')?.addEventListener('change', skyRenderChart);
   document.getElementById('sky-moon-filter')?.addEventListener('change', skyRenderChart);
+}
+
+async function skySettingsChanged(){
+  const ok=await skyFetchAll();
+  skyRenderTable();
+  skyRenderChart();
+  skyRenderStats();
+  const pred=document.getElementById('sky-pred-result');
+  if(pred)pred.textContent='';
+  if(!ok)skyShowFeedback('Database Sky Monitor non disponibile.', 'err');
 }
