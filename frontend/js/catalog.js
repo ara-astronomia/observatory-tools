@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // catalog.js — Catalogo oggetti celesti (Messier + NGC scelti)
-// source: "builtin" — oggetti utente aggiunti via API /catalog
+// source: "builtin" — oggetti utente e Landolt +50 caricati via API /catalog
 // ═══════════════════════════════════════════════════════════════
 
 const CATALOG=[
@@ -76,12 +76,51 @@ const CATALOG=[
 
 // Le funzioni astronomiche condivise sono in astro-utils.js.
 
-// Oggetti utente: caricati da API al boot
-// TODO: fetch /api/catalog/user → mergeUserCatalog()
+// Catalogo piccolo al boot; OpenNGC viene caricato solo quando richiesto.
 let USER_CATALOG = [];
+let OPENNGC_CATALOG = {ngc:null,addendum:null};
+let OPENNGC_LOADING = {ngc:null,addendum:null};
+
+async function loadOpenNgcCatalog(source){
+  if(!['ngc','addendum'].includes(source))throw new Error('Fonte OpenNGC non valida');
+  if(OPENNGC_CATALOG[source])return OPENNGC_CATALOG[source];
+  if(!OPENNGC_LOADING[source]){
+    OPENNGC_LOADING[source]=fetch(`/api/catalog/openngc?source=${source}`)
+      .then(response=>{if(!response.ok)throw new Error(`Catalogo ${source}: HTTP ${response.status}`);return response.json();})
+      .then(rows=>OPENNGC_CATALOG[source]=rows.map(normalizeApiObject))
+      .finally(()=>{OPENNGC_LOADING[source]=null;});
+  }
+  return OPENNGC_LOADING[source];
+}
+
+async function searchOpenNgc(query){
+  const response=await fetch(`/api/catalog/search?q=${encodeURIComponent(query)}&limit=30`);
+  if(!response.ok)throw new Error(`Ricerca OpenNGC: HTTP ${response.status}`);
+  return (await response.json()).map(normalizeApiObject);
+}
+
+function catalogIdentity(object){
+  // Prefer a shared NGC/IC identifier so Messier and OpenNGC aliases collapse.
+  if(object.source==='user')return `user:${object.id??object.n}`;
+  const names=[object.n,object.a||''];
+  for(const name of names){
+    const match=String(name).match(/(?:^|[^A-Za-z])(NGC|IC)\s*0*(\d+)(?!\d)/i);
+    if(match)return `${match[1].toUpperCase()} ${Number(match[2])}`;
+  }
+  return String(object.n).toUpperCase().replace(/\s+/g,' ').trim();
+}
+function dedupeCatalogObjects(objects){
+  const seen=new Set();
+  return objects.filter(object=>{
+    const key=catalogIdentity(object);
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
 
 function getCatalog() {
-  return [...CATALOG, ...USER_CATALOG];
+  const importedMessier = new Set(USER_CATALOG.filter(o => o.source === 'messier').map(o => o.n));
+  return [...CATALOG.filter(o => !importedMessier.has(o.n)), ...USER_CATALOG];
 }
 
 // ── Catalogo utente via API ───────────────────────────────────────
@@ -111,7 +150,7 @@ async function loadUserCatalog() {
     if (!resp.ok) return;
     const raw = await resp.json();
     USER_CATALOG = raw.map(normalizeApiObject);
-    console.log(`Catalogo utente: ${USER_CATALOG.length} oggetti caricati`);
+    console.log(`Catalogo principale: ${USER_CATALOG.length} oggetti caricati`);
   } catch(e) {
     // Silenzioso: API non ancora attiva
     console.debug('API catalogo non disponibile:', e.message);

@@ -23,7 +23,7 @@ async function loadPageTemplates() {
   const pages = ['staralt', 'snr', 'etc', 'settings', 'help'];
   await Promise.all(pages.map(async pid => {
     try {
-      const resp = await fetch(`/static/templates/page-${pid}.html?v=20261015m`);
+      const resp = await fetch(`/static/templates/page-${pid}.html?v=20261016i`);
       if (!resp.ok) throw new Error(`${resp.status}`);
       const html = await resp.text();
       document.getElementById(`page-${pid}`).innerHTML = html;
@@ -62,6 +62,7 @@ window.onload = async function() {
 
   // Carica catalogo utente dall'API (silenzioso se non disponibile)
   if (typeof loadUserCatalog === 'function') await loadUserCatalog();
+  if (typeof initStarAltNightList === 'function') initStarAltNightList();
 
   // Inizializza SNR e le misure di calibrazione salvate nel browser
   if (typeof snrCalInit === 'function') snrCalInit();

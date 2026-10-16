@@ -227,6 +227,7 @@ function settingsSave(){
     settingsRenderBindings();
     if(typeof initStarAltTimezone==='function')initStarAltTimezone(true);
     if(document.getElementById('s-resultArea')?.style.display==='block' && typeof sCompute==='function')sCompute();
+    if(typeof sNightRefresh==='function')sNightRefresh();
     if(typeof snrCalOnSettingsChanged==='function'&&oldKey!==settingsSetupKey())snrCalOnSettingsChanged();
     if(typeof snrUpdate==='function')snrUpdate();
     if(typeof etcCompute==='function')etcCompute();

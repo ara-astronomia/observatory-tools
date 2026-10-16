@@ -1,7 +1,7 @@
 <!-- page-staralt.html - contenuto della tab STARALT -->
 
 <div class="wrap">
-<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start;" id="staralt-grid">
+<div class="staralt-grid" id="staralt-grid">
 
 <div>
   <div class="panel">
@@ -67,6 +67,38 @@
     </div>
     <div id="s-obsWindowDiv" class="obs-window" style="margin-top:12px;display:none"></div>
   </div>
+  <section class="panel s-night-panel" id="s-night-panel" aria-label="Oggetti visibili nella notte">
+    <div class="panel-title">Oggetti visibili nella notte</div>
+    <div class="s-night-note">Sopra l’altitudine minima tra crepuscolo e alba astronomica della data scelta (alba il giorno dopo). Visibilità geometrica: Luna e meteo non sono criteri di esclusione. Seleziona una riga per mostrarne il grafico.</div>
+    <div class="s-night-controls">
+      <label>Catalogo
+        <select id="s-night-kind">
+          <option value="targets">Oggetti e personali</option>
+          <option value="messier">Messier</option>
+          <option value="ngc">NGC / IC + Addendum</option>
+          <option value="addendum">Addendum</option>
+          <option value="landolt">Landolt +50</option>
+          <option value="all">Tutti</option>
+        </select>
+      </label>
+      <label>Durata minima
+        <select id="s-night-duration">
+          <option value="0">Qualsiasi</option>
+          <option value="30" selected>30 minuti</option>
+          <option value="60">1 ora</option>
+          <option value="120">2 ore</option>
+        </select>
+      </label>
+      <label>Cerca
+        <input type="search" id="s-night-search" placeholder="Nome o tipo…" autocomplete="off">
+      </label>
+    </div>
+    <div class="s-night-summary" id="s-night-summary">Caricamento catalogo…</div>
+    <div class="s-night-table">
+      <div class="s-night-header"><span>Oggetto</span><span>Finestra</span><span>Durata</span><span>Alt. max</span><span>Ora max</span></div>
+      <div id="s-night-rows"></div>
+    </div>
+  </section>
 </div>
 
 </div>

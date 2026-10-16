@@ -1,25 +1,60 @@
-"""
-routers/catalog.py — API catalogo oggetti utente
-GET  /api/catalog        → lista oggetti utente
-POST /api/catalog        → aggiungi nuovo oggetto
-DELETE /api/catalog/{id} → elimina oggetto utente
-"""
+"""API dei cataloghi StarAlt: oggetti locali, OpenNGC e ricerca."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, case
+import re
 from typing import List
 
 from backend.db.database import get_db
 from backend.db.database import CatalogObject as CatalogORM
-from backend.models.schemas import CatalogObject, CatalogObjectCreate
+from backend.models.schemas import CatalogObject, CatalogObjectBrief, CatalogObjectCreate
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[CatalogObject])
-def get_user_catalog(db: Session = Depends(get_db)):
-    """Restituisce tutti gli oggetti aggiunti dall'utente."""
-    return db.query(CatalogORM).filter(CatalogORM.source == "user").all()
+def get_catalog_objects(db: Session = Depends(get_db)):
+    """Restituisce oggetti utente, Messier e standard Landolt per StarAlt."""
+    return db.query(CatalogORM).filter(
+        CatalogORM.source.in_(("user", "landolt50", "messier"))
+    ).order_by(CatalogORM.id).all()
+
+
+@router.get("/openngc", response_model=List[CatalogObjectBrief])
+def get_openngc_objects(source: str = Query(pattern="^(ngc|addendum)$"), db: Session = Depends(get_db)):
+    """Catalogo OpenNGC compatto, caricato solo quando StarAlt lo richiede."""
+    selected = "openngc_ngc" if source == "ngc" else "openngc_addendum"
+    return db.query(CatalogORM).filter(CatalogORM.source == selected).order_by(CatalogORM.id).all()
+
+
+@router.get("/search", response_model=List[CatalogObjectBrief])
+def search_openngc(q: str = Query(min_length=2, max_length=80),
+                   limit: int = Query(default=30, ge=1, le=50),
+                   db: Session = Depends(get_db)):
+    """Ricerca NGC/IC e addendum senza caricare l'intero catalogo nel browser."""
+    term = q.strip()
+    if len(term) < 2:
+        return []
+    match = re.fullmatch(r"(NGC|IC|ESO|HCG|MWSC|Mel|PGC|UGC|Cl|B|C|H|M)\s*0*(\d+)(.*)", term, re.I)
+    if match:
+        prefix, number, suffix = match.groups()
+        prefix = "Melotte" if prefix.lower() == "mel" else prefix.upper() if prefix.lower() != "cl" else "Cl"
+        term = f"{prefix}{'' if prefix == 'M' else ' '}{int(number)}{suffix}"
+    term = term.replace("%", "").replace("_", "").strip()
+    if not term:
+        return []
+    starts = f"{term}%"
+    alias_token = f"% · {term}%"
+    exact = CatalogORM.name.ilike(term)
+    return db.query(CatalogORM).filter(
+        CatalogORM.source.in_(("openngc_ngc", "openngc_addendum")),
+        or_(CatalogORM.name.ilike(starts),
+            CatalogORM.alias.ilike(starts),
+            CatalogORM.alias.ilike(alias_token),
+            CatalogORM.obj_type.ilike(f"%{term}%")),
+    ).order_by(case((exact, 0), (CatalogORM.name.ilike(starts), 1), else_=2), CatalogORM.name).limit(limit).all()
+
 
 
 @router.post("/", response_model=CatalogObject, status_code=201)

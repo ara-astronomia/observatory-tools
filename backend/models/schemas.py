@@ -24,8 +24,19 @@ class CatalogObject(CatalogObjectBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    source: Literal["builtin", "user"] = "user"
+    source: Literal["builtin", "user", "landolt50", "messier", "openngc_ngc", "openngc_addendum"] = "user"
     created_at: datetime
+
+
+class CatalogObjectBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    alias: Optional[str] = None
+    obj_type: Optional[str] = None
+    ra_h: float
+    dec_d: float
+    source: Literal["openngc_ngc", "openngc_addendum"]
 
 
 # ── Sky Monitor ───────────────────────────────────────────────────

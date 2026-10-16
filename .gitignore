@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 *.pyo
 tools/data/
+backups/
+
+# Local runtime database (generated from data/catalogs)
+backend/db/*.db
+tools/data/*.db
