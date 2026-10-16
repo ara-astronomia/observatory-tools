@@ -80,3 +80,20 @@ def test_search_prefers_exact_name_and_respects_prefix(client):
         override.close()
     results = client.get("/api/catalog/search?q=C9").json()
     assert [row["name"] for row in results] == ["C 9", "C 99"]
+
+
+def test_staralt_endpoint_keeps_user_list_contract(client):
+    override = app.dependency_overrides[get_db]()
+    db = next(override)
+    try:
+        db.add_all([
+            CatalogObject(name="M40", ra_h=12, dec_d=58, source="messier"),
+            CatalogObject(name="F11", ra_h=1, dec_d=14, source="landolt50"),
+            CatalogObject(name="Personal", ra_h=2, dec_d=40, source="user"),
+        ])
+        db.commit()
+    finally:
+        override.close()
+    assert [row["name"] for row in client.get("/api/catalog/").json()] == ["Personal"]
+    assert {row["name"] for row in client.get("/api/catalog/staralt").json()} == {"Personal", "F11", "M40"}
+    assert [row["name"] for row in client.get("/api/catalog/search?q=M40").json()] == ["M40"]

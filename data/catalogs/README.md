@@ -1,5 +1,28 @@
 # Provenienza dei cataloghi
 
+## Landolt +50
+
+`landolt-2013-plus50-vizier.tsv` è un estratto della tabella di standard
+fotometrici di [Landolt (2013), *AJ* 146:131, catalogo CDS
+J/AJ/146/131](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/146/131).
+Conserva le 349 righe originali dell’estrazione; l’importatore seleziona le
+335 stelle settentrionali e ne registra coordinate J2000, magnitudini UBVRI,
+numero di misure e dati originali. Le 14 righe equatoriali restano nel TSV.
+
+Per questo catalogo valgono le [condizioni d’uso di
+VizieR](https://cds.unistra.fr/vizier-org/licences_vizier.html): uso scientifico
+con citazione della pubblicazione originale e di CDS/VizieR; gli altri usi
+dipendono dai diritti della fonte. Non attribuiamo ai dati Landolt la licenza
+CC BY-SA di OpenNGC.
+
+```bash
+uv run python scripts/import_landolt50.py --dry-run
+uv run python scripts/import_landolt50.py
+```
+
+L’importatore crea un backup SQLite e aggiorna le righe già presenti senza
+duplicarle.
+
 ## Messier (M1–M110)
 
 `messier-j2000.csv` contiene le coordinate equatoriali J2000, le identificazioni alternative e le classi dei 110 oggetti Messier. Le voci M1–M101 e M103–M110 sono un estratto trasformato dei file `NGC.csv` e `addendum.csv` di [OpenNGC](https://github.com/mattiaverga/OpenNGC), creato da Mattia Verga e distribuito con licenza [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Sono state selezionate le voci Messier, normalizzate le sigle NGC/IC e tradotte in italiano le classi degli oggetti. Le coordinate sono quelle pubblicate da OpenNGC.

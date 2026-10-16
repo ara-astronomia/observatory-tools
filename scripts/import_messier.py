@@ -16,7 +16,8 @@ import re
 import sqlite3
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "data/catalogs/messier-j2000.csv"
+CATALOG_DIR = Path(os.getenv("CATALOG_DIR", ROOT / "data/catalogs"))
+SOURCE = CATALOG_DIR / "messier-j2000.csv"
 DEFAULT_DB = Path(os.getenv("DB_PATH", ROOT / "backend/db/observatory.db"))
 SOURCE_URLS = {
     "OpenNGC": "https://github.com/mattiaverga/OpenNGC",

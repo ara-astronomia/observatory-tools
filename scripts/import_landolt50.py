@@ -18,7 +18,8 @@ from pathlib import Path
 import sqlite3
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "data/catalogs/landolt-2013-plus50-vizier.tsv"
+CATALOG_DIR = Path(os.getenv("CATALOG_DIR", ROOT / "data/catalogs"))
+SOURCE = CATALOG_DIR / "landolt-2013-plus50-vizier.tsv"
 DEFAULT_DB = Path(os.getenv("DB_PATH", ROOT / "backend/db/observatory.db"))
 SOURCE_URL = "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=J/AJ/146/131/standards&-out.all&-out.max=9999"
 SOURCE_CITATION = "Landolt (2013), AJ 146:131, Table 2; CDS J/AJ/146/131"

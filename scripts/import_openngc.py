@@ -20,7 +20,8 @@ import re
 import sqlite3
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIR = ROOT / "data/catalogs/openngc"
+CATALOG_DIR = Path(os.getenv("CATALOG_DIR", ROOT / "data/catalogs"))
+SOURCE_DIR = CATALOG_DIR / "openngc"
 DEFAULT_DB = Path(os.getenv("DB_PATH", ROOT / "backend/db/observatory.db"))
 FILES = ("NGC.csv", "addendum.csv")
 COLUMNS = {

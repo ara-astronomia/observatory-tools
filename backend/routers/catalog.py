@@ -14,8 +14,14 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[CatalogObject])
-def get_catalog_objects(db: Session = Depends(get_db)):
-    """Restituisce oggetti utente, Messier e standard Landolt per StarAlt."""
+def get_user_catalog(db: Session = Depends(get_db)):
+    """Mantiene il contratto originale: solo oggetti aggiunti dall'utente."""
+    return db.query(CatalogORM).filter(CatalogORM.source == "user").order_by(CatalogORM.id).all()
+
+
+@router.get("/staralt", response_model=List[CatalogObject])
+def get_staralt_catalog(db: Session = Depends(get_db)):
+    """Catalogo piccolo usato all'avvio di StarAlt."""
     return db.query(CatalogORM).filter(
         CatalogORM.source.in_(("user", "landolt50", "messier"))
     ).order_by(CatalogORM.id).all()
@@ -32,7 +38,7 @@ def get_openngc_objects(source: str = Query(pattern="^(ngc|addendum)$"), db: Ses
 def search_openngc(q: str = Query(min_length=2, max_length=80),
                    limit: int = Query(default=30, ge=1, le=50),
                    db: Session = Depends(get_db)):
-    """Ricerca NGC/IC e addendum senza caricare l'intero catalogo nel browser."""
+    """Ricerca nei cataloghi importati senza caricare OpenNGC nel browser."""
     term = q.strip()
     if len(term) < 2:
         return []
@@ -48,7 +54,7 @@ def search_openngc(q: str = Query(min_length=2, max_length=80),
     alias_token = f"% · {term}%"
     exact = CatalogORM.name.ilike(term)
     return db.query(CatalogORM).filter(
-        CatalogORM.source.in_(("openngc_ngc", "openngc_addendum")),
+        CatalogORM.source.in_(("landolt50", "messier", "openngc_ngc", "openngc_addendum")),
         or_(CatalogORM.name.ilike(starts),
             CatalogORM.alias.ilike(starts),
             CatalogORM.alias.ilike(alias_token),

@@ -68,7 +68,8 @@ def get_db():
 
 
 def init_db():
-    """Crea le tabelle se non esistono."""
+    """Crea la directory del database e le tabelle se non esistono."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     # Conserva le misure già presenti, attribuendole alla configurazione iniziale.
     columns = {c["name"] for c in inspect(engine).get_columns("sky_measurements")}

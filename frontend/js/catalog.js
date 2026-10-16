@@ -99,15 +99,23 @@ async function searchOpenNgc(query){
   return (await response.json()).map(normalizeApiObject);
 }
 
+function catalogDesignation(value){
+  const match=String(value||'').trim().match(/^(NGC|IC|M|MELOTTE)\s*0*(\d+)([A-Z][A-Z0-9]*)?$/i);
+  if(!match)return null;
+  const prefix=match[1].toUpperCase(),number=Number(match[2]),suffix=(match[3]||'').toUpperCase();
+  return prefix==='M'?`M${number}${suffix}`:`${prefix} ${number}${suffix}`;
+}
 function catalogIdentity(object){
-  // Prefer a shared NGC/IC identifier so Messier and OpenNGC aliases collapse.
-  if(object.source==='user')return `user:${object.id??object.n}`;
-  const names=[object.n,object.a||''];
-  for(const name of names){
-    const match=String(name).match(/(?:^|[^A-Za-z])(NGC|IC)\s*0*(\d+)(?!\d)/i);
-    if(match)return `${match[1].toUpperCase()} ${Number(match[2])}`;
+  // Keep suffixes such as IC 186A and IC 186NED03 distinct. Only a Messier
+  // object's first explicit catalog alias can link it to an NGC/IC/Melotte row.
+  const primary=catalogDesignation(object.n)||String(object.n).toUpperCase().replace(/\s+/g,' ').trim();
+  if(object.source==='user')return `USER:${primary}`;
+  if(/^M\d+$/.test(primary)){
+    const firstAlias=String(object.a||'').split(' · ')[0].trim();
+    const alternate=catalogDesignation(firstAlias);
+    if(alternate&&/^(NGC|IC|MELOTTE) /.test(alternate))return alternate;
   }
-  return String(object.n).toUpperCase().replace(/\s+/g,' ').trim();
+  return primary;
 }
 function dedupeCatalogObjects(objects){
   const seen=new Set();
@@ -146,7 +154,7 @@ function normalizeApiObject(o) {
 
 async function loadUserCatalog() {
   try {
-    const resp = await fetch('/api/catalog/');
+    const resp = await fetch('/api/catalog/staralt');
     if (!resp.ok) return;
     const raw = await resp.json();
     USER_CATALOG = raw.map(normalizeApiObject);

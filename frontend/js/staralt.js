@@ -310,12 +310,12 @@ async function saveNewObject() {
   const notes  = document.getElementById('new-obj-notes')?.value.trim();
   const fb     = document.getElementById('new-obj-feedback');
 
-  if (!name) { fb.innerHTML = '<span style="color:var(--red)">Il nome è obbligatorio</span>'; return; }
+  if (!name) { fb.textContent = 'Il nome è obbligatorio'; fb.style.color = 'var(--red)'; return; }
 
   const ra_h  = parseRA(raStr);
   const dec_d = parseDec(decStr);
   if (isNaN(ra_h) || isNaN(dec_d)) {
-    fb.innerHTML = '<span style="color:var(--red)">RA o Dec non validi</span>';
+    fb.textContent = 'RA o Dec non validi'; fb.style.color = 'var(--red)';
     return;
   }
 
@@ -328,11 +328,11 @@ async function saveNewObject() {
     notes:    notes  || null,
   };
 
-  fb.innerHTML = '<span style="color:var(--text2)">Salvataggio…</span>';
+  fb.textContent = 'Salvataggio…'; fb.style.color = 'var(--text2)';
 
   try {
     const saved = await saveUserObject(obj);
-    fb.innerHTML = `<span style="color:var(--green)">✓ "${saved.name}" salvato nel catalogo</span>`;
+    fb.textContent = `✓ "${saved.name}" salvato nel catalogo`; fb.style.color = 'var(--green)';
     // Pre-popola i campi principali con il nuovo oggetto
     selectObj(saved.n, saved.r, saved.d, saved.a || saved.n);
     if(typeof sNightRefresh==='function')sNightRefresh();
@@ -340,7 +340,7 @@ async function saveNewObject() {
     ['new-obj-name','new-obj-alias','new-obj-type','new-obj-ra','new-obj-dec','new-obj-notes']
       .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   } catch(e) {
-    fb.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+    fb.textContent = `✗ ${e.message}`; fb.style.color = 'var(--red)';
   }
 }
 

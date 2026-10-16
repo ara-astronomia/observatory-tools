@@ -19,8 +19,7 @@ observatory-tools/
 │   ├── models/
 │   │   └── schemas.py        ← Pydantic models
 │   └── db/
-│       ├── database.py       ← SQLAlchemy + SQLite
-│       └── observatory.db    ← DB di seed (incluso nel repo)
+│       └── database.py       ← SQLAlchemy + SQLite
 │
 ├── frontend/                 ← Vanilla JS, servito da FastAPI
 │   ├── index.html            ← shell app
@@ -36,12 +35,16 @@ observatory-tools/
 │   ├── templates/
 │   └── icons/                ← icone SVG (favicon, Heimdall)
 │
-└── tests/                    ← pytest (20 test unitari)
+├── data/catalogs/           ← sorgenti testuali dei cataloghi
+├── scripts/                 ← importatori ripetibili e seed iniziale
+└── tests/                   ← 24 test Python e 2 test JavaScript
     ├── conftest.py
     ├── test_health.py
     ├── test_catalog.py
     ├── test_skydb.py
-    └── test_openngc.py
+    ├── test_openngc.py
+    ├── test_seed_catalogs.py
+    └── test_catalog_identity.js
 ```
 
 ## Sviluppo locale
@@ -57,6 +60,7 @@ uv run uvicorn backend.main:app --reload --port 8001
 
 # Esegui i test
 uv run pytest -v
+node --test tests/test_catalog_identity.js
 
 # Aggiungi una dipendenza
 uv add <pacchetto>
@@ -67,30 +71,31 @@ uv add <pacchetto>
 ### Docker — build locale
 
 ```bash
-docker-compose up -d        # build + avvio
-docker-compose down         # stop
-docker-compose up --build   # rebuild dopo modifiche
+docker compose up -d        # build + avvio
+docker compose down         # stop
+docker compose up --build   # rebuild dopo modifiche
 ```
 
-Il DB SQLite è montato come bind mount su `./tools/data/observatory.db` (crea la directory prima del primo avvio):
-
-```bash
-mkdir -p tools/data
-```
+Il volume `./tools/data:/app/data` conserva il database SQLite e i backup.
+Le sorgenti dei cataloghi sono incluse nell’immagine in `/app/catalogs`, fuori
+dal volume. Al primo avvio l’app crea il database e importa i cataloghi; non è
+necessario creare `tools/data` manualmente.
 
 ### Docker — produzione
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Usa l'immagine `araroma/observatory-tools` pubblicata su Docker Hub dalla CI.
+Usa l’immagine `araroma/observatory-tools:main` pubblicata su Docker Hub dalla
+CI dopo i push sul branch `main`. Le modifiche di questa PR saranno disponibili
+in tale immagine dopo il merge e la pubblicazione del nuovo build.
 
 ## CI/CD
 
 | Workflow | Trigger | Cosa fa |
 |---|---|---|
-| `ci.yml` | ogni push e PR | esegue `pytest` su Python 3.13 |
+| `ci.yml` | ogni push e PR | esegue 24 test Python su Python 3.13 e 2 test JavaScript su Node 22 |
 | `docker-build.yml` | push su `main`, tag `v*`, label `build-docker` su PR | build multi-arch (`amd64` + `arm64`) e push su Docker Hub |
 
 ## API
@@ -99,9 +104,10 @@ Documentazione interattiva su `/docs` (Swagger) e `/redoc`.
 
 ```
 GET  /api/health              → health check
-GET  /api/catalog/            → oggetti utente, Messier e Landolt +50
+GET  /api/catalog/            → solo oggetti aggiunti dall’utente
+GET  /api/catalog/staralt     → oggetti utente, Messier e Landolt +50
 GET  /api/catalog/openngc?source=ngc|addendum → NGC/IC o addendum, su richiesta
-GET  /api/catalog/search?q=NGC%20224       → ricerca NGC/IC e addendum
+GET  /api/catalog/search?q=M40             → ricerca Messier, Landolt, NGC/IC e addendum
 POST /api/catalog/            → aggiungi oggetto
 DEL  /api/catalog/{id}        → elimina oggetto
 
@@ -112,7 +118,10 @@ GET  /api/skydb/predict       → stima sky date le condizioni
 DEL  /api/skydb/{id}          → elimina misura
 ```
 
-La variabile d'ambiente `DB_PATH` sovrascrive il path del DB (default: `backend/db/observatory.db`).
+La variabile d’ambiente `DB_PATH` sovrascrive il path del DB (default locale:
+`backend/db/observatory.db`; in Docker: `/app/data/observatory.db`). `CATALOG_DIR`
+indica la directory delle sorgenti (default locale: `data/catalogs`; in Docker:
+`/app/catalogs`). `BACKUP_DIR` indica la destinazione dei backup degli import.
 
 ## Camera di riferimento
 
@@ -183,7 +192,10 @@ per la data, il sito, l'altitudine e la durata minima scelti. La prima voce
 comprende entrambi i file; la seconda mostra solo l'addendum. **Tutti** li
 include assieme agli altri cataloghi. Il catalogo esteso si carica solo quando
 serve; la ricerca dell'oggetto interroga il database e la lista della notte
-aggiunge righe durante lo scorrimento.
+aggiunge righe durante lo scorrimento. La risposta dell’endpoint OpenNGC contiene
+comunque tutte le voci della sorgente richiesta: lo scorrimento progressivo
+riguarda la visualizzazione nel browser. Se il grafico è aperto, le modifiche
+a data, fuso orario o altitudine minima aggiornano anche il calcolo del grafico.
 
 Per validare e rigenerare l'importazione senza duplicati:
 
@@ -200,7 +212,10 @@ Provenienza e licenza dei dati sono indicate in
 
 Il database SQLite non è versionato. Al primo avvio l'app crea il database nel
 volume `tools/data/` e importa i cataloghi dai file di testo inclusi
-nell'immagine. Le installazioni esistenti mantengono oggetti e misure utente.
+nell’immagine, in `/app/catalogs`. Le installazioni esistenti mantengono oggetti
+e misure utente. Chi aggiorna un checkout che versionava il vecchio database
+deve conservare una copia del proprio file `backend/db/observatory.db` prima di
+aggiornare e usare `tools/data/observatory.db` per il database Docker.
 Per aggiornare i cataloghi di un database già in uso, ricrea l'immagine con i
 nuovi CSV, poi esegui gli import nel container (che ha accesso in scrittura al
 volume). I backup vengono salvati in `tools/data/backups/`:

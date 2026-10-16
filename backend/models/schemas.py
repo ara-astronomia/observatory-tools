@@ -36,7 +36,7 @@ class CatalogObjectBrief(BaseModel):
     obj_type: Optional[str] = None
     ra_h: float
     dec_d: float
-    source: Literal["openngc_ngc", "openngc_addendum"]
+    source: Literal["landolt50", "messier", "openngc_ngc", "openngc_addendum"]
 
 
 # ── Sky Monitor ───────────────────────────────────────────────────
