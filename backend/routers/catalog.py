@@ -46,22 +46,29 @@ def search_openngc(q: str = Query(min_length=2, max_length=80),
     if match:
         prefix, number, suffix = match.groups()
         prefix = "Melotte" if prefix.lower() == "mel" else prefix.upper() if prefix.lower() != "cl" else "Cl"
-        suffix = suffix.strip()
-        term = f"{prefix}{'' if prefix == 'M' else ' '}{int(number)}{suffix}"
-    term = term.replace("%", "").replace("_", "").strip()
-    if not term:
+        number, suffix, gap = int(number), suffix.strip(), "" if prefix == "M" else " "
+        # OpenNGC keeps letter suffixes attached (IC 186A) and NED ones spaced (IC 186 NED03).
+        terms = [f"{prefix}{gap}{number}{suffix}"]
+        if suffix and gap:
+            terms.append(f"{prefix}{gap}{number} {suffix}")
+    else:
+        terms = [term]
+    terms = [t.replace("%", "").replace("_", "").strip() for t in terms]
+    terms = [t for t in terms if t]
+    if not terms:
         return []
-    starts = f"{term}%"
+    starts = [f"{t}%" for t in terms]
     # Le designazioni (C9, M1) cercano l'alias solo per prefisso, così "C 9" non trova "IC 9";
     # i nomi comuni anche a metà alias ("Veil" → "Eastern Veil").
-    alias = starts if match else f"%{term}%"
-    exact = CatalogORM.name.ilike(term)
+    alias = starts if match else [f"%{terms[0]}%"]
+    exact = or_(*[CatalogORM.name.ilike(t) for t in terms])
+    prefix_match = or_(*[CatalogORM.name.ilike(s) for s in starts])
     return db.query(CatalogORM).filter(
         CatalogORM.source.in_(("landolt50", "messier", "openngc_ngc", "openngc_addendum")),
-        or_(CatalogORM.name.ilike(starts),
-            CatalogORM.alias.ilike(alias),
-            CatalogORM.obj_type.ilike(f"%{term}%")),
-    ).order_by(case((exact, 0), (CatalogORM.name.ilike(starts), 1), else_=2), CatalogORM.name).limit(limit).all()
+        or_(prefix_match,
+            or_(*[CatalogORM.alias.ilike(a) for a in alias]),
+            CatalogORM.obj_type.ilike(f"%{terms[0]}%")),
+    ).order_by(case((exact, 0), (prefix_match, 1), else_=2), CatalogORM.name).limit(limit).all()
 
 
 
