@@ -46,6 +46,7 @@ def search_openngc(q: str = Query(min_length=2, max_length=80),
     if match:
         prefix, number, suffix = match.groups()
         prefix = "Melotte" if prefix.lower() == "mel" else prefix.upper() if prefix.lower() != "cl" else "Cl"
+        suffix = suffix.strip()
         term = f"{prefix}{'' if prefix == 'M' else ' '}{int(number)}{suffix}"
     term = term.replace("%", "").replace("_", "").strip()
     if not term:

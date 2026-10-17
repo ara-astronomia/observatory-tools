@@ -85,6 +85,23 @@ def test_search_prefers_exact_name_and_respects_prefix(client):
     assert [row["name"] for row in results] == ["C 9", "C 99"]
 
 
+def test_search_finds_suffixed_designations_with_spaces(client):
+    override = app.dependency_overrides[get_db]()
+    db = next(override)
+    try:
+        db.add_all([
+            CatalogObject(name="IC 186", ra_h=1, dec_d=1, source="openngc_ngc"),
+            CatalogObject(name="IC 186A", ra_h=1, dec_d=1, source="openngc_ngc"),
+            CatalogObject(name="IC 186NED03", ra_h=1, dec_d=1, source="openngc_ngc"),
+        ])
+        db.commit()
+    finally:
+        override.close()
+    assert [row["name"] for row in client.get("/api/catalog/search?q=IC 186 A").json()] == ["IC 186A"]
+    assert [row["name"] for row in client.get("/api/catalog/search?q=IC 186 NED03").json()] == ["IC 186NED03"]
+    assert [row["name"] for row in client.get("/api/catalog/search?q=IC186A").json()] == ["IC 186A"]
+
+
 def test_staralt_endpoint_keeps_user_list_contract(client):
     override = app.dependency_overrides[get_db]()
     db = next(override)
