@@ -4,18 +4,27 @@ Frasso Sabino Observatory
 """
 
 from contextlib import asynccontextmanager
+import logging
+import os
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
 from backend.routers import catalog, skydb
-from backend.db.database import init_db
+from backend.db.database import init_db, seed_catalogs
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    if not os.getenv("SKIP_CATALOG_SEED"):
+        try:
+            seed_catalogs()
+        except Exception:
+            # L'app resta usabile (catalogo utente, Sky Monitor) anche senza cataloghi importati.
+            logging.exception("Importazione dei cataloghi fallita: avvio senza cataloghi")
     yield
 
 
@@ -25,6 +34,8 @@ app = FastAPI(
     version="0.2.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # ── Static frontend ───────────────────────────────────────────────
 FRONTEND = Path(__file__).parent.parent / "frontend"

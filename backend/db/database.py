@@ -33,7 +33,7 @@ class CatalogObject(Base):
     obj_type   = Column(String, nullable=True)
     ra_h       = Column(Float, nullable=False)
     dec_d      = Column(Float, nullable=False)
-    source     = Column(String, default="user")   # "builtin" | "user"
+    source     = Column(String, default="user")   # "builtin" | "user" | "landolt50" | "messier" | "openngc_*"
     notes      = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -68,7 +68,8 @@ def get_db():
 
 
 def init_db():
-    """Crea le tabelle se non esistono."""
+    """Crea la directory del database e le tabelle se non esistono."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     # Conserva le misure già presenti, attribuendole alla configurazione iniziale.
     columns = {c["name"] for c in inspect(engine).get_columns("sky_measurements")}
@@ -80,3 +81,21 @@ def init_db():
             ))
     with engine.begin() as conn:
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_sky_measurements_setup_id ON sky_measurements (setup_id)"))
+
+
+def seed_catalogs():
+    """Populate a fresh database from versioned text sources; preserve existing data."""
+    import sqlite3
+    from contextlib import closing
+    from scripts import import_landolt50, import_messier, import_openngc
+
+    with closing(sqlite3.connect(DB_PATH)) as connection, connection:
+        connection.execute("PRAGMA foreign_keys=ON")
+        for source, reader, importer in (
+            ("landolt50", lambda: import_landolt50.read_standards(import_landolt50.SOURCE), import_landolt50.import_rows),
+            ("messier", lambda: import_messier.read_catalog(import_messier.SOURCE), import_messier.import_rows),
+            ("openngc_ngc", lambda: import_openngc.read_records(import_openngc.SOURCE_DIR), import_openngc.import_records),
+        ):
+            present = connection.execute("SELECT 1 FROM catalog WHERE source=? LIMIT 1", (source,)).fetchone()
+            if not present:
+                importer(connection, reader())

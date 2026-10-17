@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // catalog.js — Catalogo oggetti celesti (Messier + NGC scelti)
-// source: "builtin" — oggetti utente aggiunti via API /catalog
+// source: "builtin" — oggetti utente e Landolt +50 caricati via API /catalog
 // ═══════════════════════════════════════════════════════════════
 
 const CATALOG=[
@@ -76,12 +76,59 @@ const CATALOG=[
 
 // Le funzioni astronomiche condivise sono in astro-utils.js.
 
-// Oggetti utente: caricati da API al boot
-// TODO: fetch /api/catalog/user → mergeUserCatalog()
+// Catalogo piccolo al boot; OpenNGC viene caricato solo quando richiesto.
 let USER_CATALOG = [];
+let OPENNGC_CATALOG = {ngc:null,addendum:null};
+let OPENNGC_LOADING = {ngc:null,addendum:null};
+
+async function loadOpenNgcCatalog(source){
+  if(!['ngc','addendum'].includes(source))throw new Error('Fonte OpenNGC non valida');
+  if(OPENNGC_CATALOG[source])return OPENNGC_CATALOG[source];
+  if(!OPENNGC_LOADING[source]){
+    OPENNGC_LOADING[source]=fetch(`/api/catalog/openngc?source=${source}`)
+      .then(response=>{if(!response.ok)throw new Error(`Catalogo ${source}: HTTP ${response.status}`);return response.json();})
+      .then(rows=>OPENNGC_CATALOG[source]=rows.map(normalizeApiObject))
+      .finally(()=>{OPENNGC_LOADING[source]=null;});
+  }
+  return OPENNGC_LOADING[source];
+}
+
+async function searchOpenNgc(query){
+  const response=await fetch(`/api/catalog/search?q=${encodeURIComponent(query)}&limit=30`);
+  if(!response.ok)throw new Error(`Ricerca OpenNGC: HTTP ${response.status}`);
+  return (await response.json()).map(normalizeApiObject);
+}
+
+function catalogDesignation(value){
+  const match=String(value||'').trim().match(/^(NGC|IC|M|MELOTTE)\s*0*(\d+)([A-Z][A-Z0-9]*)?$/i);
+  if(!match)return null;
+  const prefix=match[1].toUpperCase(),number=Number(match[2]),suffix=(match[3]||'').toUpperCase();
+  return prefix==='M'?`M${number}${suffix}`:`${prefix} ${number}${suffix}`;
+}
+function catalogIdentity(object){
+  // Keep suffixes such as IC 186A and IC 186NED03 distinct. Only a Messier
+  // object's first explicit catalog alias can link it to an NGC/IC/Melotte row.
+  const primary=catalogDesignation(object.n)||String(object.n).toUpperCase().replace(/\s+/g,' ').trim();
+  if(object.source==='user')return `USER:${primary}`;
+  if(/^M\d+$/.test(primary)){
+    const firstAlias=String(object.a||'').split(' · ')[0].trim();
+    const alternate=catalogDesignation(firstAlias);
+    if(alternate&&/^(NGC|IC|MELOTTE) /.test(alternate))return alternate;
+  }
+  return primary;
+}
+function dedupeCatalogObjects(objects){
+  const seen=new Set();
+  return objects.filter(object=>{
+    const key=catalogIdentity(object);
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
 
 function getCatalog() {
-  return [...CATALOG, ...USER_CATALOG];
+  const importedMessier = new Set(USER_CATALOG.filter(o => o.source === 'messier').map(o => o.n));
+  return [...CATALOG.filter(o => !importedMessier.has(o.n)), ...USER_CATALOG];
 }
 
 // ── Catalogo utente via API ───────────────────────────────────────
@@ -107,11 +154,11 @@ function normalizeApiObject(o) {
 
 async function loadUserCatalog() {
   try {
-    const resp = await fetch('/api/catalog/');
+    const resp = await fetch('/api/catalog/staralt');
     if (!resp.ok) return;
     const raw = await resp.json();
     USER_CATALOG = raw.map(normalizeApiObject);
-    console.log(`Catalogo utente: ${USER_CATALOG.length} oggetti caricati`);
+    console.log(`Catalogo principale: ${USER_CATALOG.length} oggetti caricati`);
   } catch(e) {
     // Silenzioso: API non ancora attiva
     console.debug('API catalogo non disponibile:', e.message);

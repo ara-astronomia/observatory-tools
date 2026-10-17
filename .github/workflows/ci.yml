@@ -19,3 +19,10 @@ jobs:
       - name: Run tests
         run: uv run pytest -v --tb=short
         timeout-minutes: 5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check catalog identity
+        run: node --test tests/test_catalog_identity.js

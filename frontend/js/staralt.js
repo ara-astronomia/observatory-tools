@@ -4,23 +4,82 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════
-function filterCatalog(){
-  const q=document.getElementById('s-catSearch').value.toLowerCase().trim();
+function catalogSourceBadge(source){
+  const labels={user:'utente',landolt50:'Landolt +50',messier:'Messier',openngc_ngc:'NGC/IC',openngc_addendum:'Addendum'};
+  if(!labels[source])return null;
+  const badge=document.createElement('span');
+  badge.className=`catalog-source-badge catalog-source-${source}`;
+  badge.textContent=labels[source];
+  return badge;
+}
+let catalogSearchSeq=0;
+let catalogSearchTimer=null;
+function renderCatalogMatches(matches,emptyText='Nessun risultato'){
   const list=document.getElementById('s-catList');
-  if(!q){list.innerHTML='';return;}
-  const m=getCatalog().filter(o=>o.n.toLowerCase().includes(q)||(o.a||'').toLowerCase().includes(q)||(o.t||'').toLowerCase().includes(q)).slice(0,30);
-  if(!m.length){list.innerHTML='<div class="catalog-item" style="color:var(--text2)">Nessun risultato</div>';return;}
-  list.innerHTML=m.map(o=>`<div class="catalog-item" onclick="selectObj('${o.n}','${o.r}','${o.d}','${o.a||o.n}')"><span><span class="ci-name">${o.n}</span>${o.a?` <span class="ci-type">${o.a}</span>`:''} ${o.source==='user'?'<span style="font-size:9px;background:rgba(167,139,250,0.2);color:#a78bfa;border-radius:3px;padding:1px 4px;">utente</span>':''}</span><span><span class="ci-type">${o.t}</span> <span class="ci-coords">RA ${(+o.r).toFixed(3)}h Dec ${o.d>=0?'+':''}${(+o.d).toFixed(2)}°</span></span></div>`).join('');
+  const content=document.createDocumentFragment();
+  if(!matches.length){
+    const empty=document.createElement('div');
+    empty.className='catalog-item catalog-empty';
+    empty.textContent=emptyText;
+    content.append(empty);
+  }
+  for(const o of matches){
+    const row=document.createElement('button');
+    row.type='button';
+    row.className='catalog-item';
+    const title=document.createElement('span');
+    const name=document.createElement('span');name.className='ci-name';name.textContent=o.n;
+    title.append(name);
+    if(o.a){const alias=document.createElement('span');alias.className='ci-type';alias.textContent=` ${o.a}`;title.append(alias);}
+    const badge=catalogSourceBadge(o.source);
+    if(badge)title.append(' ',badge);
+    const details=document.createElement('span');
+    const type=document.createElement('span');type.className='ci-type';type.textContent=o.t||'';
+    const coords=document.createElement('span');coords.className='ci-coords';
+    coords.textContent=` RA ${Number(o.r).toFixed(3)}h Dec ${Number(o.d)>=0?'+':''}${Number(o.d).toFixed(2)}°`;
+    details.append(type,coords);
+    row.append(title,details);
+    row.addEventListener('click',()=>selectObj(o.n,o.r,o.d,o.a||o.n));
+    content.append(row);
+  }
+  list.replaceChildren(content);
+}
+function filterCatalog(){
+  const q=document.getElementById('s-catSearch').value.trim();
+  const seq=++catalogSearchSeq;
+  clearTimeout(catalogSearchTimer);
+  if(!q){document.getElementById('s-catList').replaceChildren();return;}
+  const lower=q.toLowerCase();
+  const local=getCatalog().filter(o=>o.n.toLowerCase().includes(lower)||(o.a||'').toLowerCase().includes(lower)||(o.t||'').toLowerCase().includes(lower)).slice(0,30);
+  renderCatalogMatches(local,q.length>=2?'Ricerca NGC/IC…':'Nessun risultato');
+  if(q.length<2)return;
+  catalogSearchTimer=setTimeout(async()=>{
+    try{
+      const remote=await searchOpenNgc(q);
+      if(seq!==catalogSearchSeq)return;
+      const preferRemote=/^(ngc|ic|eso|hcg|mwsc|mel|pgc|ugc|cl|b\d|c\d|h\d)/i.test(q);
+      const combined=dedupeCatalogObjects(preferRemote?[...remote,...local]:[...local,...remote]).slice(0,30);
+      renderCatalogMatches(combined);
+    }catch(error){
+      if(seq===catalogSearchSeq)renderCatalogMatches(local);
+      console.warn('Ricerca NGC/IC non disponibile:',error);
+    }
+  },180);
 }
 function selectObj(name,ra,dec,full){
+  catalogSearchSeq++;
+  clearTimeout(catalogSearchTimer);
   document.getElementById('s-ra').value=parseFloat(ra).toFixed(4);
   document.getElementById('s-dec').value=parseFloat(dec).toFixed(4);
   document.getElementById('s-objname').value=name;
   document.getElementById('s-catSearch').value='';
-  document.getElementById('s-catList').innerHTML='';
-  const r=document.getElementById('s-objResult');
-  r.style.display='block';
-  r.innerHTML=`<div class="obj-name">${name}</div><div class="obj-coords">${full} &nbsp;·&nbsp; RA ${parseFloat(ra).toFixed(4)}h &nbsp; Dec ${parseFloat(dec)>=0?'+':''}${parseFloat(dec).toFixed(4)}°</div>`;
+  document.getElementById('s-catList').replaceChildren();
+  const result=document.getElementById('s-objResult');
+  result.style.display='block';
+  const nameLine=document.createElement('div');nameLine.className='obj-name';nameLine.textContent=name;
+  const coordsLine=document.createElement('div');coordsLine.className='obj-coords';
+  coordsLine.textContent=`${full} · RA ${parseFloat(ra).toFixed(4)}h · Dec ${parseFloat(dec)>=0?'+':''}${parseFloat(dec).toFixed(4)}°`;
+  result.replaceChildren(nameLine,coordsLine);
 }
 let sChart=null;
 let sTzManual=false;
@@ -56,7 +115,9 @@ function sCompute(startH,endH){
   const ra_h=parseRA(document.getElementById('s-ra').value),dec_d=parseDec(document.getElementById('s-dec').value);
   if(isNaN(ra_h)||isNaN(dec_d)){alert('Inserisci RA e Dec validi');return;}
   const{lat,lon}=settingsGet().site;
-  const tz=+document.getElementById('s-tz').value,minAlt=+document.getElementById('s-minalt').value||20;
+  const tz=+document.getElementById('s-tz').value;
+  const minAltText=document.getElementById('s-minalt').value;
+  const minAlt=minAltText===''?20:+minAltText;
   const objname=document.getElementById('s-objname').value||'Oggetto';
   const date=sGetDate(),tw=findTwilight(date,lat,lon,tz);
   const h0=startH!==undefined?startH:tw.sunset,h1=endH!==undefined?endH:tw.sunrise;
@@ -249,12 +310,12 @@ async function saveNewObject() {
   const notes  = document.getElementById('new-obj-notes')?.value.trim();
   const fb     = document.getElementById('new-obj-feedback');
 
-  if (!name) { fb.innerHTML = '<span style="color:var(--red)">Il nome è obbligatorio</span>'; return; }
+  if (!name) { fb.textContent = 'Il nome è obbligatorio'; fb.style.color = 'var(--red)'; return; }
 
   const ra_h  = parseRA(raStr);
   const dec_d = parseDec(decStr);
   if (isNaN(ra_h) || isNaN(dec_d)) {
-    fb.innerHTML = '<span style="color:var(--red)">RA o Dec non validi</span>';
+    fb.textContent = 'RA o Dec non validi'; fb.style.color = 'var(--red)';
     return;
   }
 
@@ -267,18 +328,19 @@ async function saveNewObject() {
     notes:    notes  || null,
   };
 
-  fb.innerHTML = '<span style="color:var(--text2)">Salvataggio…</span>';
+  fb.textContent = 'Salvataggio…'; fb.style.color = 'var(--text2)';
 
   try {
     const saved = await saveUserObject(obj);
-    fb.innerHTML = `<span style="color:var(--green)">✓ "${saved.name}" salvato nel catalogo</span>`;
+    fb.textContent = `✓ "${saved.name}" salvato nel catalogo`; fb.style.color = 'var(--green)';
     // Pre-popola i campi principali con il nuovo oggetto
     selectObj(saved.n, saved.r, saved.d, saved.a || saved.n);
+    if(typeof sNightRefresh==='function')sNightRefresh();
     // Reset form
     ['new-obj-name','new-obj-alias','new-obj-type','new-obj-ra','new-obj-dec','new-obj-notes']
       .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   } catch(e) {
-    fb.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+    fb.textContent = `✗ ${e.message}`; fb.style.color = 'var(--red)';
   }
 }
 

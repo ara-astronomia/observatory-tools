@@ -1,11 +1,12 @@
 services:
   observatory-tools:
-    image: araroma/observatory-tools:feat-uv-docker-ci
+    image: araroma/observatory-tools:main
     container_name: observatory-tools
     ports:
       - "8000:8000"
     environment:
       - DB_PATH=/app/data/observatory.db
+      - BACKUP_DIR=/app/data/backups
     volumes:
       - ./tools/data:/app/data
     restart: unless-stopped

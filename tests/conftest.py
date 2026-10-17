@@ -1,8 +1,12 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+os.environ["SKIP_CATALOG_SEED"] = "1"  # il lifespan non deve riempire il DB di sviluppo
 
 from backend.main import app
 from backend.db.database import Base, get_db
