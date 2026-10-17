@@ -9,37 +9,19 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import datetime, timezone
-import math
-import os
 from pathlib import Path
-import re
 import sqlite3
 
-ROOT = Path(__file__).resolve().parents[1]
-CATALOG_DIR = Path(os.getenv("CATALOG_DIR", ROOT / "data/catalogs"))
+try:
+    from scripts._common import CATALOG_DIR, DEFAULT_DB, angle, make_backup
+except ModuleNotFoundError:  # eseguito come `python scripts/import_messier.py`
+    from _common import CATALOG_DIR, DEFAULT_DB, angle, make_backup
+
 SOURCE = CATALOG_DIR / "messier-j2000.csv"
-DEFAULT_DB = Path(os.getenv("DB_PATH", ROOT / "backend/db/observatory.db"))
 SOURCE_URLS = {
     "OpenNGC": "https://github.com/mattiaverga/OpenNGC",
     "KPNO_NOIRLab": "https://www-kpno.kpno.noirlab.edu/Info/Caches/Catalogs/Messier/messier_catalog.html",
 }
-
-
-def angle(value: str, *, ra: bool) -> float:
-    match = re.fullmatch(r"([+-]?)(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)", value.strip())
-    if not match:
-        raise ValueError(f"Coordinata non valida: {value!r}")
-    sign, whole, minute, second = match.groups()
-    whole, minute, second = int(whole), int(minute), float(second)
-    if not 0 <= minute < 60 or not 0 <= second < 60 or not math.isfinite(second):
-        raise ValueError(f"Coordinata non valida: {value!r}")
-    result = whole + minute / 60 + second / 3600
-    if ra:
-        if sign == "-" or not 0 <= result < 24:
-            raise ValueError(f"RA non valida: {value!r}")
-    elif result > 90:
-        raise ValueError(f"Dec non valida: {value!r}")
-    return -result if sign == "-" else result
 
 
 def read_catalog(path: Path) -> list[dict[str, str | float]]:
@@ -66,16 +48,6 @@ def read_catalog(path: Path) -> list[dict[str, str | float]]:
     if len(rows) != 110 or {row["name"] for row in rows} != {f"M{i}" for i in range(1, 111)}:
         raise ValueError("Il CSV deve contenere M1–M110 esattamente una volta")
     return rows
-
-
-def make_backup(connection: sqlite3.Connection, db_path: Path) -> Path:
-    backup_dir = Path(os.getenv("BACKUP_DIR", ROOT / "backups"))
-    backup_dir.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    backup_path = backup_dir / f"{db_path.stem}-before-messier-{stamp}.db"
-    with sqlite3.connect(backup_path) as backup:
-        connection.backup(backup)
-    return backup_path
 
 
 def import_rows(connection: sqlite3.Connection, rows: list[dict[str, str | float]]) -> tuple[int, int]:
@@ -127,7 +99,7 @@ def main() -> None:
     with sqlite3.connect(args.db, timeout=30) as connection:
         if connection.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise SystemExit("Il database non supera PRAGMA integrity_check")
-        backup = make_backup(connection, args.db)
+        backup = make_backup(connection, args.db, "messier")
         inserted, updated = import_rows(connection, rows)
     print(f"Importazione completata: {inserted} inseriti, {updated} aggiornati; backup: {backup}")
 

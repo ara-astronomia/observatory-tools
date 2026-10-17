@@ -13,36 +13,17 @@ import csv
 from datetime import datetime, timezone
 import json
 import math
-import os
 from pathlib import Path
 import sqlite3
 
-ROOT = Path(__file__).resolve().parents[1]
-CATALOG_DIR = Path(os.getenv("CATALOG_DIR", ROOT / "data/catalogs"))
+try:
+    from scripts._common import CATALOG_DIR, DEFAULT_DB, angle, make_backup
+except ModuleNotFoundError:  # eseguito come `python scripts/import_landolt50.py`
+    from _common import CATALOG_DIR, DEFAULT_DB, angle, make_backup
+
 SOURCE = CATALOG_DIR / "landolt-2013-plus50-vizier.tsv"
-DEFAULT_DB = Path(os.getenv("DB_PATH", ROOT / "backend/db/observatory.db"))
 SOURCE_URL = "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=J/AJ/146/131/standards&-out.all&-out.max=9999"
 SOURCE_CITATION = "Landolt (2013), AJ 146:131, Table 2; CDS J/AJ/146/131"
-
-
-def angle(parts: str, is_ra: bool) -> float:
-    pieces = parts.strip().split()
-    if len(pieces) != 3:
-        raise ValueError(f"Coordinata non valida: {parts!r}")
-    first, minute, second = pieces
-    sign = -1 if first.startswith("-") else 1
-    whole = abs(int(first))
-    minute, second = int(minute), float(second)
-    if not 0 <= minute < 60 or not 0 <= second < 60:
-        raise ValueError(f"Coordinata non valida: {parts!r}")
-    value = whole + minute / 60 + second / 3600
-    if is_ra:
-        if sign < 0 or not 0 <= value < 24:
-            raise ValueError(f"RA non valida: {parts!r}")
-        return value
-    if value > 90:
-        raise ValueError(f"Dec non valida: {parts!r}")
-    return sign * value
 
 
 def number(row: dict[str, str], column: str) -> float | None:
@@ -66,11 +47,11 @@ def read_standards(path: Path) -> list[dict[str, str]]:
     ]
     if len(rows) != 349:
         raise ValueError(f"Attese 349 righe CDS (335 nord + 14 equatore), trovate {len(rows)}")
-    northern = [row for row in rows if angle(row["DEJ2000"], False) > 20]
+    northern = [row for row in rows if angle(row["DEJ2000"], ra=False) > 20]
     if len(northern) != 335 or len({row["Name"] for row in northern}) != 335:
         raise ValueError("La selezione delle 335 stelle settentrionali non è univoca")
     for row in northern:
-        angle(row["RAJ2000"], True)
+        angle(row["RAJ2000"], ra=True)
         if number(row, "<Vmag>") is None:
             raise ValueError(f"Magnitudine V assente per {row['Name']}")
     return northern
@@ -95,16 +76,6 @@ def quality(n_obs: int) -> str:
     return "candidate"
 
 
-def make_backup(connection: sqlite3.Connection, db_path: Path) -> Path:
-    backup_dir = Path(os.getenv("BACKUP_DIR", ROOT / "backups"))
-    backup_dir.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    backup_path = backup_dir / f"{db_path.stem}-before-landolt50-{stamp}.db"
-    with sqlite3.connect(backup_path) as backup:
-        connection.backup(backup)
-    return backup_path
-
-
 def import_rows(connection: sqlite3.Connection, rows: list[dict[str, str]]) -> tuple[int, int]:
     connection.execute("BEGIN IMMEDIATE")
     try:
@@ -125,8 +96,8 @@ def import_rows(connection: sqlite3.Connection, rows: list[dict[str, str]]) -> t
         inserted = updated = 0
         for row in rows:
             name = row["Name"]
-            ra_h = angle(row["RAJ2000"], True)
-            dec_d = angle(row["DEJ2000"], False)
+            ra_h = angle(row["RAJ2000"], ra=True)
+            dec_d = angle(row["DEJ2000"], ra=False)
             u, b, v, r, i = photometry(row)
             n_obs, n_nights = int(row["No"]), int(row["Nn"])
             grade = quality(n_obs)
@@ -196,7 +167,7 @@ def main() -> None:
         connection.execute("PRAGMA foreign_keys=ON")
         if connection.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise SystemExit("Il database non supera PRAGMA integrity_check")
-        backup = make_backup(connection, args.db)
+        backup = make_backup(connection, args.db, "landolt50")
         inserted, updated = import_rows(connection, rows)
         total = connection.execute("SELECT COUNT(*) FROM catalog WHERE source='landolt50'").fetchone()[0]
         photo = connection.execute("SELECT COUNT(*) FROM landolt50_photometry").fetchone()[0]

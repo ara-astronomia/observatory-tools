@@ -68,7 +68,10 @@ function sNightRefresh(){
   const tz=Number(document.getElementById('s-tz').value);
   const minAltText=document.getElementById('s-minalt').value;
   const minAlt=minAltText===''?20:Number(minAltText);
-  if(![lat,lon,tz,minAlt].every(Number.isFinite))return;
+  if(![lat,lon,tz,minAlt].every(Number.isFinite)){
+    document.getElementById('s-night-summary').textContent='Fuso orario o altitudine minima non validi.';
+    return;
+  }
   const jdNoon=jdLocalNoon(date,tz);
   const dusk=findSolarCrossing(jdNoon,lat,lon,-18,12,30,false);
   const dawn=findSolarCrossing(jdNoon,lat,lon,-18,24,36,true);

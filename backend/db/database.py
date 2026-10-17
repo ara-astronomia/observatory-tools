@@ -86,9 +86,10 @@ def init_db():
 def seed_catalogs():
     """Populate a fresh database from versioned text sources; preserve existing data."""
     import sqlite3
+    from contextlib import closing
     from scripts import import_landolt50, import_messier, import_openngc
 
-    with sqlite3.connect(DB_PATH) as connection:
+    with closing(sqlite3.connect(DB_PATH)) as connection, connection:
         connection.execute("PRAGMA foreign_keys=ON")
         for source, reader, importer in (
             ("landolt50", lambda: import_landolt50.read_standards(import_landolt50.SOURCE), import_landolt50.import_rows),

@@ -51,13 +51,14 @@ def search_openngc(q: str = Query(min_length=2, max_length=80),
     if not term:
         return []
     starts = f"{term}%"
-    alias_token = f"% · {term}%"
+    # Le designazioni (C9, M1) cercano l'alias solo per prefisso, così "C 9" non trova "IC 9";
+    # i nomi comuni anche a metà alias ("Veil" → "Eastern Veil").
+    alias = starts if match else f"%{term}%"
     exact = CatalogORM.name.ilike(term)
     return db.query(CatalogORM).filter(
         CatalogORM.source.in_(("landolt50", "messier", "openngc_ngc", "openngc_addendum")),
         or_(CatalogORM.name.ilike(starts),
-            CatalogORM.alias.ilike(starts),
-            CatalogORM.alias.ilike(alias_token),
+            CatalogORM.alias.ilike(alias),
             CatalogORM.obj_type.ilike(f"%{term}%")),
     ).order_by(case((exact, 0), (CatalogORM.name.ilike(starts), 1), else_=2), CatalogORM.name).limit(limit).all()
 

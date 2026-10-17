@@ -13,16 +13,16 @@ import argparse
 import csv
 from datetime import datetime, timezone
 import json
-import math
-import os
 from pathlib import Path
 import re
 import sqlite3
 
-ROOT = Path(__file__).resolve().parents[1]
-CATALOG_DIR = Path(os.getenv("CATALOG_DIR", ROOT / "data/catalogs"))
+try:
+    from scripts._common import CATALOG_DIR, DEFAULT_DB, angle, make_backup
+except ModuleNotFoundError:  # eseguito come `python scripts/import_openngc.py`
+    from _common import CATALOG_DIR, DEFAULT_DB, angle, make_backup
+
 SOURCE_DIR = CATALOG_DIR / "openngc"
-DEFAULT_DB = Path(os.getenv("DB_PATH", ROOT / "backend/db/observatory.db"))
 FILES = ("NGC.csv", "addendum.csv")
 COLUMNS = {
     "Name", "Type", "RA", "Dec", "M", "NGC", "IC", "Identifiers", "Common names", "Sources"
@@ -37,7 +37,6 @@ TYPE_LABELS = {
     "Nova": "Nova", "Other": "Altro", "Dup": "Duplicato", "NonEx": "Oggetto inesistente",
 }
 NAME_RE = re.compile(r"^(NGC|IC|ESO|HCG|MWSC|Mel|PGC|UGC|Cl|B|C|H|M)(\d+)(.*)$")
-ANGLE_RE = re.compile(r"([+-]?)(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)")
 
 
 def display_name(raw: str) -> str:
@@ -48,23 +47,6 @@ def display_name(raw: str) -> str:
     if prefix == "Mel":
         prefix = "Melotte"
     return f"{prefix}{'' if prefix == 'M' else ' '}{int(number)}{suffix}"
-
-
-def angle(value: str, *, ra: bool) -> float:
-    match = ANGLE_RE.fullmatch(value)
-    if not match:
-        raise ValueError(f"Coordinata non valida: {value!r}")
-    sign, whole, minute, second = match.groups()
-    whole, minute, second = int(whole), int(minute), float(second)
-    if not 0 <= minute < 60 or not 0 <= second <= 60 or not math.isfinite(second):
-        raise ValueError(f"Coordinata non valida: {value!r}")
-    result = whole + minute / 60 + second / 3600
-    if ra:
-        if sign == "-" or not 0 <= result < 24:
-            raise ValueError(f"RA non valida: {value!r}")
-    elif result > 90:
-        raise ValueError(f"Dec non valida: {value!r}")
-    return -result if sign == "-" else result
 
 
 def read_records(source_dir: Path) -> list[dict]:
@@ -112,16 +94,6 @@ def read_records(source_dir: Path) -> list[dict]:
     if len({r["name"] for r in records}) != len(records):
         raise ValueError("Designazioni normalizzate duplicate")
     return records
-
-
-def make_backup(connection: sqlite3.Connection, db_path: Path) -> Path:
-    backup_dir = Path(os.getenv("BACKUP_DIR", ROOT / "backups"))
-    backup_dir.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    backup_path = backup_dir / f"{db_path.stem}-before-openngc-{stamp}.db"
-    with sqlite3.connect(backup_path) as backup:
-        connection.backup(backup)
-    return backup_path
 
 
 def import_records(connection: sqlite3.Connection, records: list[dict]) -> tuple[int, int]:
@@ -215,7 +187,7 @@ def main() -> None:
         connection.execute("PRAGMA foreign_keys=ON")
         if connection.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise SystemExit("Il database non supera PRAGMA integrity_check")
-        backup = make_backup(connection, args.db)
+        backup = make_backup(connection, args.db, "openngc")
         inserted, updated = import_records(connection, records)
     print(f"Importazione completata: {inserted} inseriti, {updated} aggiornati; backup: {backup}")
 

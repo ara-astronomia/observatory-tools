@@ -36,6 +36,8 @@ def test_openngc_filter_and_search(client):
             CatalogObject(name="B 33", alias="Horsehead Nebula", ra_h=5.6831,
                           dec_d=-2.4583, source="openngc_addendum"),
             CatalogObject(name="NGC 224", ra_h=0.7123, dec_d=41.2691, source="user"),
+            CatalogObject(name="NGC 6992", alias="Eastern Veil · Network Nebula", ra_h=20.94,
+                          dec_d=31.72, source="openngc_ngc"),
         ])
         db.commit()
     finally:
@@ -43,10 +45,11 @@ def test_openngc_filter_and_search(client):
 
     ngc = client.get("/api/catalog/openngc?source=ngc")
     assert ngc.status_code == 200
-    assert [row["name"] for row in ngc.json()] == ["NGC 224"]
+    assert [row["name"] for row in ngc.json()] == ["NGC 224", "NGC 6992"]
     assert [row["name"] for row in client.get("/api/catalog/openngc?source=addendum").json()] == ["B 33"]
     assert [row["name"] for row in client.get("/api/catalog/search?q=NGC0224").json()] == ["NGC 224"]
     assert [row["name"] for row in client.get("/api/catalog/search?q=Horsehead").json()] == ["B 33"]
+    assert [row["name"] for row in client.get("/api/catalog/search?q=Veil").json()] == ["NGC 6992"]
 
 
 def test_import_synchronizes_removed_and_reclassified_records():
